@@ -18,6 +18,9 @@ exports.handler = async function(event) {
       "EN-US": "en", "EN": "en", "en": "en",
       "ZH": "zh-CN", "ZH-CN": "zh-CN", "zh": "zh-CN", "zh-CN": "zh-CN",
       "PT-BR": "pt", "PT": "pt", "pt": "pt",
+      "ID": "id", "id": "id", "id-ID": "id",
+      "NE": "ne", "ne": "ne", "ne-NP": "ne",
+      "MY": "my", "my": "my", "my-MM": "my",
       "JA": "ja", "ja": "ja"
     };
 
