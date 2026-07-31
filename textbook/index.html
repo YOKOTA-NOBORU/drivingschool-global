@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>運転教本アプリ</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./pdf-viewer.css">
+  <link rel="manifest" href="./manifest.json">
+</head>
+<body>
+<main class="wrap">
+  <section class="menu-card">
+    <div class="app-title">運転教本アプリ</div>
+
+    <div class="menu-body">
+      <div class="stage-tabs">
+        <button id="stage1" class="stage active" data-stage="1">第1段階</button>
+        <button id="stage2" class="stage" data-stage="2">第2段階</button>
+      </div>
+
+      <div class="toolbar">
+        <div>
+          <div class="field-label">教習項目を選択</div>
+          <select id="itemSelect"></select>
+        </div>
+        <div>
+          <div class="field-label">言語</div>
+          <select id="lang">
+            <option value="vi">ベトナム語</option>
+            <option value="en">英語</option>
+            <option value="zh">中国語</option>
+            <option value="pt">ポルトガル語</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button id="prevBtn">◀ 前へ</button>
+        <button id="nextBtn">次へ ▶</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="content-layout">
+    <div class="lesson-pane">
+      <section class="card" id="headerCard"></section>
+      <section id="list"></section>
+    </div>
+
+    <div id="splitDivider" class="split-divider" role="separator" aria-orientation="vertical" aria-label="説明とPDFの幅を調整" tabindex="0">
+      <span class="split-divider-handle" aria-hidden="true"></span>
+    </div>
+
+    <aside id="pdfSidePanel" class="pdf-side-panel" aria-hidden="true">
+      <div class="pdf-side-header">
+        <strong id="pdfSideTitle">教本PDF</strong>
+        <div class="pdf-side-actions">
+          <div class="pdf-zoom-controls" aria-label="PDFの表示倍率">
+            <button id="pdfZoomOutBtn" type="button" aria-label="PDFを縮小">−</button>
+            <button id="pdfZoomResetBtn" type="button" aria-label="PDFを100パーセントに戻す">100%</button>
+            <button id="pdfZoomInBtn" type="button" aria-label="PDFを拡大">＋</button>
+          </div>
+          <button id="pdfFullscreenBtn" type="button" aria-label="PDFを全画面で開く">⛶ 全画面</button>
+          <button id="pdfSideCloseBtn" type="button" aria-label="PDFを閉じる">✕ 閉じる</button>
+        </div>
+      </div>
+      <div id="pdfRenderArea" class="pdf-render-area" aria-live="polite">
+        <div class="pdf-status">PDFを読み込んでいます…</div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script src="./mobile-data.js"></script>
+<script src="./data.js"></script>
+<script src="./app.js"></script>
+<script type="module" src="./pdf-viewer.js"></script>
+</body>
+</html>

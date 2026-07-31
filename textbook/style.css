@@ -1,0 +1,665 @@
+*{box-sizing:border-box}
+
+:root{
+  --green:#2f965c;
+  --green-dark:#14532d;
+  --green-soft:#e7f4eb;
+  --green-bg:#f5faf7;
+  --line:#dbe7df;
+  --text:#1f2937;
+  --muted:#6b7280;
+}
+
+html{
+  -webkit-text-size-adjust:100%;
+}
+
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--green-bg);
+  color:var(--text);
+}
+
+.wrap{
+  width:min(100%,760px);
+  margin:0 auto;
+  padding:12px;
+}
+
+.stage-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.stage,
+.nav-row button{
+  border:0;
+  border-radius:999px;
+  padding:10px 12px;
+  font-size:15px;
+  font-weight:800;
+  background:var(--green-soft);
+  color:var(--green-dark);
+}
+
+.stage.active,
+.nav-row button{
+  background:var(--green);
+  color:#fff;
+}
+
+.toolbar{
+  display:grid;
+  gap:9px;
+  margin-bottom:10px;
+}
+
+.field-label{
+  margin:0 0 4px 3px;
+  font-size:13px;
+  font-weight:850;
+  color:var(--green-dark);
+}
+
+select{
+  width:100%;
+  min-height:46px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  color:var(--text);
+  font-size:16px;
+}
+
+.nav-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:2px 0 12px;
+}
+
+.card,
+.section{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:14px;
+  margin-bottom:12px;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 10px;
+  border-radius:999px;
+  background:var(--green-soft);
+  color:var(--green-dark);
+  font-size:12px;
+  font-weight:800;
+}
+
+.title{
+  margin:10px 0 3px;
+  font-size:22px;
+  line-height:1.35;
+  font-weight:850;
+}
+
+.count{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.toggle-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+
+.toggle-grid button{
+    min-height:42px;
+    border:0;
+    border-radius:14px;
+    padding:8px 8px;
+    background:var(--green-soft);
+    color:var(--green-dark);
+    font-size:14px;
+    line-height:1.25;
+    font-weight:800;
+}
+
+.toggle-grid button.active{
+  background:var(--green);
+  color:#fff;
+}
+
+.accordion{
+  width:100%;
+  min-height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:11px 13px;
+  background:#fff;
+  color:var(--text);
+  text-align:left;
+  font-size:17px;
+  line-height:1.35;
+  font-weight:850;
+}
+
+.jp-block,
+.foreign-block{
+  margin:8px 0 0;
+  padding:10px 11px;
+  border-radius:12px;
+}
+
+.jp-block{
+  border-left:5px solid var(--green);
+  background:#f0f8f3;
+}
+
+.foreign-block{
+  border-left:5px solid #111827;
+  background:#f7f7f7;
+}
+
+.jp-label,
+.foreign-label{
+  font-size:12px;
+  font-weight:850;
+}
+
+.jp-label{
+  color:var(--green-dark);
+}
+
+.jp-text,
+.foreign-text{
+  margin:4px 0 0;
+  font-size:16px;
+  line-height:1.7;
+}
+
+.foreign{
+  display:none;
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+}
+
+.foreign.show{
+  display:block;
+}
+
+.speak,
+.stop{
+  margin-top:8px;
+  border:0;
+  border-radius:12px;
+  padding:10px 12px;
+  color:#fff;
+  font-size:14px;
+  font-weight:800;
+}
+
+.speak{background:#111827}
+.stop{background:#000}
+
+@media(min-width:760px){
+  .wrap{
+    width:min(100%,760px);
+  }
+
+  .toolbar{
+    grid-template-columns:1fr 150px;
+  }
+
+  .toggle-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+/* タイトルとメニューを1枚のカードに統合 */
+.menu-card{
+  overflow:hidden;
+  margin-bottom:12px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+}
+
+.app-title{
+  padding:14px 18px;
+  background:linear-gradient(135deg,#2f8f5b,#63b97f);
+  color:#fff;
+  text-align:left;
+  font-size:22px;
+  line-height:1.25;
+  font-weight:800;
+}
+
+.menu-body{
+  padding:12px;
+}
+
+.menu-body .stage-tabs{
+  margin-bottom:10px;
+}
+
+.menu-body .nav-row{
+  margin-bottom:0;
+}
+
+@media(max-width:520px){
+  .app-title{
+    padding:13px 15px;
+    font-size:20px;
+  }
+
+  .menu-body{
+    padding:10px;
+  }
+}
+
+
+/* 最終レイアウト調整 */
+.menu-card{
+  margin-bottom:8px;
+}
+
+.app-title{
+  padding:10px 20px;
+  font-size:21px;
+  line-height:1.15;
+  font-weight:900;
+}
+
+@media(max-width:520px){
+  .menu-card{
+    margin-bottom:7px;
+  }
+
+  .app-title{
+    padding:10px 16px;
+    font-size:19px;
+    line-height:1.15;
+    font-weight:900;
+  }
+}
+
+
+/* 完成デザイン微調整 */
+.app-title{
+  padding:7px 10px;
+  font-size:22px;
+  line-height:1.12;
+  font-weight:900;
+}
+
+.menu-body{
+  padding-top:9px;
+}
+
+.field-label{
+  margin:0 0 2px 3px;
+  line-height:1.1;
+}
+
+.toolbar{
+  gap:7px;
+  margin-bottom:8px;
+}
+
+.menu-body .stage-tabs{
+  margin-bottom:8px;
+}
+
+@media(max-width:520px){
+  .app-title{
+    padding:7px 10px;
+    font-size:20px;
+    line-height:1.12;
+    font-weight:900;
+  }
+
+  .menu-body{
+    padding-top:8px;
+  }
+
+  .field-label{
+    margin-bottom:2px;
+  }
+}
+
+/* ========================================
+   タブレット横持ち・左右表示 改善版 第2段階
+   ・左45％／右55％
+   ・説明とPDFを独立スクロール
+   ・PDFを右側に固定
+   ======================================== */
+.content-layout{
+  display:block;
+}
+
+.lesson-pane{
+  min-width:0;
+}
+
+.pdf-side-panel{
+  display:none;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+}
+
+.pdf-side-header{
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px 8px 14px;
+  border-bottom:1px solid var(--line);
+  color:var(--green-dark);
+}
+
+.pdf-side-header strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:15px;
+}
+
+.pdf-side-actions{
+  flex:0 0 auto;
+  display:flex;
+  gap:7px;
+}
+
+#pdfFullscreenBtn,
+#pdfSideCloseBtn,
+#pdfZoomOutBtn,
+#pdfZoomResetBtn,
+#pdfZoomInBtn{
+  border:0;
+  border-radius:12px;
+  padding:8px 11px;
+  background:var(--green-soft);
+  color:var(--green-dark);
+  font-size:14px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+#pdfFullscreenBtn:active,
+#pdfSideCloseBtn:active,
+#pdfZoomOutBtn:active,
+#pdfZoomResetBtn:active,
+#pdfZoomInBtn:active{
+  transform:scale(.98);
+}
+
+#pdfSideFrame{
+  display:block;
+  width:100%;
+  height:calc(100vh - 76px);
+  min-height:560px;
+  border:0;
+  background:#f3f4f6;
+}
+
+@media (min-width:768px) and (orientation:landscape){
+  body.pdf-split-open{
+    height:100vh;
+    overflow:hidden;
+  }
+
+  body.pdf-split-open .wrap{
+    width:min(100%,1600px);
+    max-width:none;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    margin:0 auto;
+    padding:10px;
+    overflow:hidden;
+  }
+
+  body.pdf-split-open .menu-card{
+    flex:0 0 auto;
+  }
+
+  body.pdf-split-open .content-layout{
+    flex:1 1 auto;
+    min-height:0;
+    display:grid;
+    grid-template-columns:minmax(300px,var(--lesson-pane-width,45%)) 14px minmax(360px,1fr);
+    align-items:stretch;
+    gap:12px;
+    overflow:hidden;
+  }
+
+  /* 左側だけ独立してスクロール */
+  body.pdf-split-open .lesson-pane{
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding-right:4px;
+    scrollbar-gutter:stable;
+  }
+
+  /* 右側PDFは画面内に固定し、PDF内部だけスクロール */
+  body.pdf-split-open .pdf-side-panel{
+    display:flex;
+    min-height:0;
+    height:100%;
+    flex-direction:column;
+    position:sticky;
+    top:0;
+  }
+
+  body.pdf-split-open #pdfSideFrame{
+    flex:1 1 auto;
+    min-height:0;
+    height:auto;
+  }
+}
+
+@media (min-width:768px) and (orientation:landscape) and (max-height:700px){
+  body.pdf-split-open .app-title{
+    padding-top:5px;
+    padding-bottom:5px;
+  }
+
+  body.pdf-split-open .menu-body{
+    padding-top:7px;
+    padding-bottom:8px;
+  }
+}
+
+/* ========================================
+   iPad横持ち対応 PDF.js 全ページ表示
+   iframeを使わず各ページをcanvasへ描画
+   ======================================== */
+.pdf-render-area{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:auto;
+  padding:10px;
+  background:#e5e7eb;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  touch-action:pan-x pan-y;
+}
+
+.pdf-status{
+  display:flex;
+  min-height:180px;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  color:var(--muted);
+  text-align:center;
+  font-size:15px;
+  font-weight:800;
+}
+
+.pdf-status.error{
+  color:#991b1b;
+  background:#fef2f2;
+  border-radius:12px;
+}
+
+.pdf-page-wrap{
+  width:100%;
+  margin:0 auto 12px;
+}
+
+.pdf-page-label{
+  margin:0 0 5px;
+  color:#4b5563;
+  text-align:center;
+  font-size:12px;
+  font-weight:800;
+}
+
+.pdf-page-canvas{
+  display:block;
+  max-width:none;
+  height:auto;
+  margin:0 auto;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+
+/* 旧iframe用指定を無効化 */
+body.pdf-split-open #pdfSideFrame{
+  display:none;
+}
+
+
+
+.pdf-zoom-controls{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:3px;
+  border-radius:12px;
+  background:#f1f5f2;
+}
+
+#pdfZoomOutBtn,
+#pdfZoomInBtn{
+  min-width:36px;
+  padding-left:8px;
+  padding-right:8px;
+  font-size:19px;
+  line-height:1;
+}
+
+#pdfZoomResetBtn{
+  min-width:58px;
+  padding-left:8px;
+  padding-right:8px;
+  font-size:13px;
+}
+
+#pdfZoomOutBtn:disabled,
+#pdfZoomInBtn:disabled{
+  opacity:.4;
+}
+
+@media (min-width:768px) and (orientation:landscape) and (max-width:1050px){
+  .pdf-side-header{
+    align-items:flex-start;
+  }
+
+  .pdf-side-actions{
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+}
+
+/* ========================================
+   左右境界ドラッグ調整
+   iPadは指、PCはマウスで操作可能
+   ======================================== */
+.split-divider{
+  display:none;
+}
+
+@media (min-width:768px) and (orientation:landscape){
+  body.pdf-split-open .split-divider{
+    display:flex;
+    min-width:14px;
+    height:100%;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    border:0;
+    border-radius:999px;
+    background:transparent;
+    cursor:col-resize;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+
+  body.pdf-split-open .split-divider::before{
+    content:"";
+    position:absolute;
+    inset:0 4px;
+    border-radius:999px;
+    background:#cbd5d1;
+    transition:background .15s, transform .15s;
+  }
+
+  body.pdf-split-open .split-divider-handle{
+    position:relative;
+    z-index:1;
+    width:6px;
+    height:54px;
+    border-radius:999px;
+    background:var(--green);
+    box-shadow:0 1px 4px rgba(0,0,0,.22);
+  }
+
+  body.pdf-split-open .split-divider:active::before,
+  body.pdf-split-open .split-divider.dragging::before,
+  body.pdf-split-open .split-divider:focus-visible::before{
+    background:#9fcab0;
+    transform:scaleX(1.25);
+  }
+
+  body.split-resizing,
+  body.split-resizing *{
+    cursor:col-resize !important;
+  }
+}
+
+
+/* PDFスクロール連動：現在対応している説明を強調 */
+.section{
+  transition:box-shadow .22s ease,background-color .22s ease,border-color .22s ease;
+}
+.section.pdf-follow-active{
+  background:#eef9f1;
+  border-color:#63ad7d;
+  box-shadow:0 0 0 3px rgba(47,150,92,.18),0 4px 14px rgba(0,0,0,.08);
+}
+.section.pdf-follow-active .accordion{
+  background:#dff3e5;
+}
