@@ -1,12 +1,12 @@
 {
-  "name": "教習翻訳 Google緑版",
-  "short_name": "教習翻訳",
-  "description": "教習所向け多言語音声アプリ Google翻訳 緑版",
-  "start_url": "./index.html",
+  "name": "Driving School Global",
+  "short_name": "教習所GLOBAL",
+  "description": "多言語音声アプリと運転教本アプリのホームメニュー",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4fbf6",
-  "theme_color": "#159447",
+  "background_color": "#eef6f2",
+  "theme_color": "#0f7a3f",
   "orientation": "portrait",
   "icons": [
     {
