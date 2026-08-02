@@ -1,4 +1,12 @@
-const LANGS={vi:"ベトナム語",en:"英語",zh:"中国語",pt:"ポルトガル語"};
+const LANGS={
+  vi:"ベトナム語",
+  en:"英語",
+  zh:"中国語",
+  pt:"ポルトガル語",
+  id:"インドネシア語",
+  ne:"ネパール語",
+  my:"ミャンマー語"
+};
 const KINDS=["教官ワンポイント","検定ポイント","よくある失敗","覚えておきたいこと","教習で使う一言"];
 const PDF_KEYS=new Set(["1-1","1-10","1-11","1-12","1-13","1-14","1-15","1-16","1-17","1-18","1-19","1-2","1-20","1-21","1-22","1-3","1-4","1-5","1-6","1-7","1-8","1-9","2-1","2-10","2-11","2-12","2-13","2-14","2-15","2-16","2-2","2-3","2-4","2-5","2-6","2-7","2-8","2-9"]);
 
@@ -15,7 +23,14 @@ const prevBtn=document.getElementById("prevBtn");
 const nextBtn=document.getElementById("nextBtn");
 
 function voiceLang(code){
-  return code==="vi"?"vi-VN":code==="en"?"en-US":code==="zh"?"zh-CN":"pt-BR";
+  return code==="vi" ? "vi-VN" :
+         code==="en" ? "en-US" :
+         code==="zh" ? "zh-CN" :
+         code==="pt" ? "pt-BR" :
+         code==="id" ? "id-ID" :
+         code==="ne" ? "ne-NP" :
+         code==="my" ? "my-MM" :
+         "ja-JP";
 }
 
 function stopSpeech(){
