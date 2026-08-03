@@ -51,23 +51,36 @@
     return;
   }
 
-  function itemKey(item) {
-    return `${Number(item.stage || 1)}-${Number(item.id)}`;
-  }
-
-  const sourceItems = new Map();
+  /*
+    data.js の第2段階は id:23～38、
+    mobile-data.js の第2段階は id:1～16 になっているため、
+    idではなく「段階ごとの並び順」で対応させます。
+  */
+  const sourceByStage = new Map();
 
   textbookData.forEach(item => {
-    sourceItems.set(itemKey(item), item);
+    const stage = Number(item.stage || 1);
+    if (!sourceByStage.has(stage)) sourceByStage.set(stage, []);
+    sourceByStage.get(stage).push(item);
   });
 
+  sourceByStage.forEach(items => {
+    items.sort((a, b) => Number(a.id || 0) - Number(b.id || 0));
+  });
+
+  const targetIndexByStage = new Map();
+
   MOBILE_ITEMS.forEach(mobileItem => {
-    const sourceItem = sourceItems.get(itemKey(mobileItem));
+    const stage = Number(mobileItem.stage || 1);
+    const targetIndex = targetIndexByStage.get(stage) || 0;
+    const sourceItem = sourceByStage.get(stage)?.[targetIndex];
+
+    targetIndexByStage.set(stage, targetIndex + 1);
 
     if (!sourceItem) {
       console.warn(
         "翻訳元が見つかりません:",
-        itemKey(mobileItem),
+        `第${stage}段階 ${targetIndex + 1}項目`,
         mobileItem.title
       );
       return;

@@ -257,6 +257,7 @@ document.querySelectorAll(".stage").forEach(button=>{
     currentKey=stageItems()[0]?.key||"";
     visibleKinds=new Set(["説明"]);
     render();
+    langSelect.dispatchEvent(new Event("change"));
     if(pdfWasOpen) syncOpenPdfToCurrentItem();
     window.scrollTo({top:0,behavior:"smooth"});
   };
