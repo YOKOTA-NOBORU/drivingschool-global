@@ -1860,13 +1860,13 @@ let extraTranslationRunning=false;
 
     const job = (async () => {
       autoTranslations[langKey] = autoTranslations[langKey] || {};
-      for (const phrase of BASE) {
+      for (const phrase of allPhrases) {
         if (autoTranslations[langKey][phrase.jp] === phrase.jp) {
           delete autoTranslations[langKey][phrase.jp];
         }
       }
       saveTranslations();
-      const missing = BASE.filter(p => {
+      const missing = allPhrases.filter(p => {
         const saved = autoTranslations[langKey][p.jp];
         return !p[langKey] && (!saved || saved === p.jp || saved === '翻訳データを準備中…');
       });
@@ -1895,9 +1895,17 @@ let extraTranslationRunning=false;
         }
 
         batch.forEach((phrase, index) => {
-          if (lines[index]) autoTranslations[langKey][phrase.jp] = lines[index];
-        });
-        saveTranslations();
+  const japaneseText =
+    phrase.jp ||
+    phrase.ja ||
+    phrase.text ||
+    phrase.japanese;
+
+  if (lines[index] && japaneseText) {
+    autoTranslations[langKey][japaneseText] = lines[index];
+  }
+});
+saveTranslations();
         status.textContent = LANGS[langKey].label + 'の翻訳データを準備中… '
           + Math.min(start + batch.length, missing.length) + '/' + missing.length;
         if (lang.value === langKey) render();
