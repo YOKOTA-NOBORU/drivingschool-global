@@ -1748,7 +1748,9 @@ async function translateOne(text,target){
     idn:'ID', id:'ID', 'id-ID':'ID', ne:'NE', 'ne-NP':'NE', my:'MY', 'my-MM':'MY'
   };
   const t = map[target] || String(target || 'VI').toUpperCase();
-  const res = await fetch('/.netlify/functions/translate', {
+  const res = await fetch(
+  'https://drivingtalk-g.netlify.app/.netlify/functions/translate',
+  {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ text:text, target_lang:t, source_lang:'JA' })
