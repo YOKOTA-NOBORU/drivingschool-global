@@ -1,61 +1,127 @@
 <!DOCTYPE html>
-<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#0f7a3f"><title>運転教本アプリの使い方</title>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="theme-color" content="#0f7a3f">
+  <title>運転教本アプリの使い方</title>
+  
 <style>
   :root{
-    --green:#0f7a3f;--green-2:#19a15a;--green-dark:#07552c;--green-soft:#e9f8ef;
-    --text:#173028;--muted:#66756f;--line:#dce9e2;--card:#fff;--warn:#fff7df;--warn-line:#e4ba44;
-    --shadow:0 15px 38px rgba(11,80,42,.12)
+    --green:#0f7a3f;
+    --green-2:#19a15a;
+    --green-dark:#07552c;
+    --green-soft:#e9f8ef;
+    --text:#173028;
+    --muted:#66756f;
+    --line:#dce9e2;
+    --card:#fff;
+    --warn:#fff7df;
+    --warn-line:#e4ba44;
+    --shadow:0 15px 38px rgba(11,80,42,.12);
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
-    margin:0;color:var(--text);
+    margin:0;
+    color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-    background:linear-gradient(180deg,#f9fdfb,#eef6f2)
+    background:linear-gradient(180deg,#f9fdfb,#eef6f2);
   }
   .page{width:min(850px,100%);margin:0 auto;padding:16px 14px 40px}
   .topbar{
-    position:sticky;top:8px;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:12px;
-    margin-bottom:15px;padding:12px 14px;border:1px solid rgba(15,122,63,.11);border-radius:17px;
-    background:rgba(255,255,255,.93);backdrop-filter:blur(10px);box-shadow:0 8px 22px rgba(11,80,42,.08)
+    position:sticky;
+    top:8px;
+    z-index:10;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:15px;
+    padding:12px 14px;
+    border:1px solid rgba(15,122,63,.11);
+    border-radius:17px;
+    background:rgba(255,255,255,.93);
+    backdrop-filter:blur(10px);
+    box-shadow:0 8px 22px rgba(11,80,42,.08);
   }
   .back{color:var(--green-dark);text-decoration:none;font-weight:900}
   .brand{font-size:12px;color:var(--muted)}
   .hero{
-    padding:27px 22px;border-radius:25px;color:white;
-    background:linear-gradient(135deg,var(--green-dark),var(--green-2));box-shadow:var(--shadow)
+    padding:27px 22px;
+    border-radius:25px;
+    color:white;
+    background:linear-gradient(135deg,var(--green-dark),var(--green-2));
+    box-shadow:var(--shadow);
   }
   .hero h1{margin:0 0 8px;font-size:clamp(25px,5vw,37px)}
   .hero p{margin:0;color:rgba(255,255,255,.88);line-height:1.75}
   .card{
-    margin-top:16px;padding:21px;border:1px solid var(--line);border-radius:21px;background:var(--card);
-    box-shadow:0 8px 24px rgba(11,80,42,.07)
+    margin-top:16px;
+    padding:21px;
+    border:1px solid var(--line);
+    border-radius:21px;
+    background:var(--card);
+    box-shadow:0 8px 24px rgba(11,80,42,.07);
   }
   .card h2{margin:0 0 13px;font-size:20px}
-  .step{display:grid;grid-template-columns:38px 1fr;gap:12px;margin:17px 0}
+  .step{
+    display:grid;
+    grid-template-columns:38px 1fr;
+    gap:12px;
+    margin:17px 0;
+  }
   .num{
-    width:36px;height:36px;display:grid;place-items:center;border-radius:12px;
-    color:white;background:linear-gradient(var(--green),var(--green-2));font-weight:900
+    width:36px;
+    height:36px;
+    display:grid;
+    place-items:center;
+    border-radius:12px;
+    color:white;
+    background:linear-gradient(var(--green),var(--green-2));
+    font-weight:900;
   }
   .step h3{margin:2px 0 5px;font-size:17px}
   .step p{margin:0;color:var(--muted);line-height:1.75}
   .tip,.admin-note{
-    margin-top:14px;padding:15px 16px;border-left:4px solid var(--green);
-    border-radius:13px;background:var(--green-soft);line-height:1.75
+    margin-top:14px;
+    padding:15px 16px;
+    border-left:4px solid var(--green);
+    border-radius:13px;
+    background:var(--green-soft);
+    line-height:1.75;
   }
   .admin-note{background:var(--warn);border-left-color:var(--warn-line)}
   .admin-note strong{display:block;margin-bottom:4px}
   .flow{
-    display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:8px;
-    margin:14px 0;padding:14px;border-radius:16px;background:#f7faf8;text-align:center;font-weight:900
+    display:grid;
+    grid-template-columns:1fr auto 1fr auto 1fr;
+    align-items:center;
+    gap:8px;
+    margin:14px 0;
+    padding:14px;
+    border-radius:16px;
+    background:#f7faf8;
+    text-align:center;
+    font-weight:900;
   }
   .flow span{padding:10px;border-radius:12px;background:white;border:1px solid var(--line)}
   .flow b{color:var(--green)}
-  .links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+  .links{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-top:18px;
+  }
   .links a{
-    padding:13px 14px;border-radius:14px;background:white;border:1px solid var(--line);
-    color:var(--green-dark);text-decoration:none;font-weight:900;text-align:center
+    padding:13px 14px;
+    border-radius:14px;
+    background:white;
+    border:1px solid var(--line);
+    color:var(--green-dark);
+    text-decoration:none;
+    font-weight:900;
+    text-align:center;
   }
   footer{margin-top:24px;text-align:center;color:#7b8983;font-size:13px}
   @media(max-width:620px){
@@ -65,12 +131,23 @@
     .hero{padding:23px 18px}
   }
 </style>
+
 </head>
-<body><main class="page">
-<div class="topbar"><a class="back" href="./">← ホームへ戻る</a><span class="brand">Driving School Global</span></div>
-<section class="hero"><h1>運転教本アプリの使い方</h1><p>教習項目ごとの説明、ポイント、7外国語の音声、教本PDFを確認できます。</p></section>
-<section class="card"><h2>基本の使い方</h2>
-<div class="step"><div class="num">1</div><div><h3>第1段階・第2段階を選ぶ</h3><p>画面上部のボタンで、確認したい教習段階を選びます。</p></div></div>
+<body>
+  <main class="page">
+    <div class="topbar">
+      <a class="back" href="./">← ホームへ戻る</a>
+      <span class="brand">Driving School Global</span>
+    </div>
+
+    <section class="hero">
+      <h1>運転教本アプリの使い方</h1>
+      <p>教習項目ごとの説明、ポイント、7外国語の音声、教本PDFを確認できます。</p>
+    </section>
+
+    <section class="card">
+      <h2>基本の使い方</h2>
+      <div class="step"><div class="num">1</div><div><h3>第1段階・第2段階を選ぶ</h3><p>画面上部のボタンで、確認したい教習段階を選びます。</p></div></div>
 <div class="step"><div class="num">2</div><div><h3>教習項目を選ぶ</h3><p>教習項目一覧から選ぶか、「前へ」「次へ」で移動します。</p></div></div>
 <div class="step"><div class="num">3</div><div><h3>言語を選ぶ</h3><p>言語一覧から、表示・音声再生したい言語を選びます。</p></div></div>
 <div class="step"><div class="num">4</div><div><h3>表示内容を切り替える</h3><p>「教官ワンポイント」「検定ポイント」「よくある失敗」「覚えておきたいこと」「教習で使う一言」を切り替えます。</p></div></div>
@@ -78,7 +155,15 @@
 <div class="step"><div class="num">6</div><div><h3>教本PDFを開く</h3><p>「教本PDF」ボタンがある項目では、該当PDFを別画面で確認できます。</p></div></div>
 <div class="step"><div class="num">7</div><div><h3>横向きで使う</h3><p>スマホやタブレットを横向きにすると、文章を広く表示できます。</p></div></div>
 <div class="step"><div class="num">8</div><div><h3>ホームへ戻る</h3><p>画面上部の「ホームメニューへ戻る」ボタンで最初の画面へ戻れます。</p></div></div>
-<div class="tip">PDFから戻るときは、ブラウザの戻る操作、タブを閉じる操作、または端末のスワイプ操作を使います。</div>
-</section>
-<div class="links"><a href="./textbook/">運転教本アプリを開く</a><a href="./">ホームメニューへ戻る</a></div>
-<footer>© Driving School Global</footer></main></body></html>
+      <div class="tip">PDFから戻るときは、ブラウザの戻る操作、タブを閉じる操作、または端末のスワイプ操作を使います。</div>
+    </section>
+
+    <div class="links">
+      <a href="./textbook/">運転教本アプリを開く</a>
+      <a href="./">ホームメニューへ戻る</a>
+    </div>
+
+    <footer>© Driving School Global</footer>
+  </main>
+</body>
+</html>
