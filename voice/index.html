@@ -1900,18 +1900,17 @@ let extraTranslationRunning=false;
     saveTranslations();
 
     const missing = allPhrases().filter(p => {
-      const saved =
-        autoTranslations[langKey][p.jp];
+  const current = p[langKey];
+  const saved = autoTranslations[langKey][p.jp];
 
-      return (
-        !p[langKey] &&
-        (
-          !saved ||
-          saved === p.jp ||
-          saved === '翻訳データを準備中…'
-        )
-      );
-    });
+  return (
+    !current ||
+    current === p.jp ||
+    current === '翻訳データを準備中…' ||
+    saved === p.jp ||
+    saved === '翻訳データを準備中…'
+  );
+});
 
     if (!missing.length) {
       render();
