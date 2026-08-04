@@ -1938,9 +1938,9 @@ saveTranslations();
       status.textContent = LANGS[langKey].label + 'の翻訳準備が完了しました';
       render();
       setTimeout(() => {
-        if (status.textContent.includes('翻訳準備が完了')) status.textContent = previousStatus;
-      }, 2500);
-    })().catch(error => {
+  if (status.textContent.includes('翻訳準備が完了')) status.textContent = previousStatus;
+}, 2500);
+})().catch(error => {
       console.error(error);
       status.textContent = LANGS[langKey].label + 'の翻訳取得に失敗しました。通信状態を確認してください。';
       render();
