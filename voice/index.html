@@ -1879,78 +1879,155 @@ let extraTranslationRunning=false;
   }
 
   async function prepareExtraLanguage(langKey) {
-    if (!EXTRA_TARGETS[langKey]) return;
-    if (preparing.has(langKey)) return preparing.get(langKey);
+  if (!EXTRA_TARGETS[langKey]) return;
 
-    const job = (async () => {
-      autoTranslations[langKey] = autoTranslations[langKey] || {};
-      for (const phrase of allPhrases()) { {
-        if (autoTranslations[langKey][phrase.jp] === phrase.jp) {
-          delete autoTranslations[langKey][phrase.jp];
-        }
-      }
-      saveTranslations();
-      const missing = allPhrases().filter(p => {
-        const saved = autoTranslations[langKey][p.jp];
-        return !p[langKey] && (!saved || saved === p.jp || saved === '翻訳データを準備中…');
-      });
-      if (!missing.length) {
-        render();
-        return;
-      }
-
-      const previousStatus = status.textContent;
-      status.textContent = LANGS[langKey].label + 'の翻訳データを準備中… 0/' + missing.length;
-
-      /* 改行単位でまとめて翻訳し、通信回数を抑える。 */
-      const batchSize = 25;
-      for (let start = 0; start < missing.length; start += batchSize) {
-        const batch = missing.slice(start, start + batchSize);
-        const source = batch.map(p => p.jp.replace(/[\r\n]+/g, ' ')).join('\n');
-        const translated = await translateGoogleDirect(source, EXTRA_TARGETS[langKey]);
-        let lines = translated.split(/\r?\n/).map(s => s.trim());
-
-        /* 翻訳サービスが改行を保持しなかった場合は、安全に1件ずつ再取得する。 */
-        if (lines.length !== batch.length) {
-          lines = [];
-          for (const phrase of batch) {
-            lines.push((await translateGoogleDirect(phrase.jp, EXTRA_TARGETS[langKey])).trim());
-          }
-        }
-
-        batch.forEach((phrase, index) => {
-  const japaneseText =
-    phrase.jp ||
-    phrase.ja ||
-    phrase.text ||
-    phrase.japanese;
-
-  if (lines[index] && japaneseText) {
-    autoTranslations[langKey][japaneseText] = lines[index];
+  if (preparing.has(langKey)) {
+    return preparing.get(langKey);
   }
-});
-saveTranslations();
-        status.textContent = LANGS[langKey].label + 'の翻訳データを準備中… '
-          + Math.min(start + batch.length, missing.length) + '/' + missing.length;
-        if (lang.value === langKey) render();
+
+  const job = (async () => {
+    autoTranslations[langKey] =
+      autoTranslations[langKey] || {};
+
+    for (const phrase of allPhrases()) {
+      if (
+        autoTranslations[langKey][phrase.jp] === phrase.jp
+      ) {
+        delete autoTranslations[langKey][phrase.jp];
+      }
+    }
+
+    saveTranslations();
+
+    const missing = allPhrases().filter(p => {
+      const saved =
+        autoTranslations[langKey][p.jp];
+
+      return (
+        !p[langKey] &&
+        (
+          !saved ||
+          saved === p.jp ||
+          saved === '翻訳データを準備中…'
+        )
+      );
+    });
+
+    if (!missing.length) {
+      render();
+      return;
+    }
+
+    const previousStatus = status.textContent;
+
+    status.textContent =
+      LANGS[langKey].label +
+      'の翻訳データを準備中… 0/' +
+      missing.length;
+
+    const batchSize = 25;
+
+    for (
+      let start = 0;
+      start < missing.length;
+      start += batchSize
+    ) {
+      const batch =
+        missing.slice(start, start + batchSize);
+
+      const source = batch
+        .map(p =>
+          p.jp.replace(/[\r\n]+/g, ' ')
+        )
+        .join('\n');
+
+      const translated =
+        await translateGoogleDirect(
+          source,
+          EXTRA_TARGETS[langKey]
+        );
+
+      let lines = translated
+        .split(/\r?\n/)
+        .map(s => s.trim());
+
+      if (lines.length !== batch.length) {
+        lines = [];
+
+        for (const phrase of batch) {
+          const result =
+            await translateGoogleDirect(
+              phrase.jp,
+              EXTRA_TARGETS[langKey]
+            );
+
+          lines.push(result.trim());
+        }
       }
 
-      status.textContent = LANGS[langKey].label + 'の翻訳準備が完了しました';
-      render();
-      setTimeout(() => {
-  if (status.textContent.includes('翻訳準備が完了')) status.textContent = previousStatus;
-}, 2500);
-})().catch(error => {
+      batch.forEach((phrase, index) => {
+        const japaneseText =
+          phrase.jp ||
+          phrase.ja ||
+          phrase.text ||
+          phrase.japanese;
+
+        if (lines[index] && japaneseText) {
+          autoTranslations[langKey][japaneseText] =
+            lines[index];
+        }
+      });
+
+      saveTranslations();
+
+      status.textContent =
+        LANGS[langKey].label +
+        'の翻訳データを準備中… ' +
+        Math.min(
+          start + batch.length,
+          missing.length
+        ) +
+        '/' +
+        missing.length;
+
+      if (lang.value === langKey) {
+        render();
+      }
+    }
+
+    status.textContent =
+      LANGS[langKey].label +
+      ' の翻訳準備が完了しました';
+
+    render();
+
+    setTimeout(() => {
+      if (
+        status.textContent.includes(
+          '翻訳準備が完了'
+        )
+      ) {
+        status.textContent = previousStatus;
+      }
+    }, 2500);
+  })()
+    .catch(error => {
       console.error(error);
-      status.textContent = LANGS[langKey].label + 'の翻訳取得に失敗しました。通信状態を確認してください。';
+
+      status.textContent =
+        LANGS[langKey].label +
+        ' の翻訳取得に失敗しました。通信状況を確認してください';
+
       render();
-    }).finally(() => {
+    })
+    .finally(() => {
       preparing.delete(langKey);
     });
 
-    preparing.set(langKey, job);
-    return job;
-  }
+  preparing.set(langKey, job);
+
+  return job;
+}
 
   function prepareSelectedLanguage() {
     const selected = lang && lang.value;
