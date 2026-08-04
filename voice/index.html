@@ -1884,13 +1884,13 @@ let extraTranslationRunning=false;
 
     const job = (async () => {
       autoTranslations[langKey] = autoTranslations[langKey] || {};
-      for (const phrase of allPhrases) {
+      for (const phrase of allPhrases()) { {
         if (autoTranslations[langKey][phrase.jp] === phrase.jp) {
           delete autoTranslations[langKey][phrase.jp];
         }
       }
       saveTranslations();
-      const missing = allPhrases.filter(p => {
+      const missing = allPhrases().filter(p => {
         const saved = autoTranslations[langKey][p.jp];
         return !p[langKey] && (!saved || saved === p.jp || saved === '翻訳データを準備中…');
       });
