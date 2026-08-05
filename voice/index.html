@@ -1766,7 +1766,7 @@ async function translateOne(text,target){
   };
   const t = map[target] || String(target || 'VI').toUpperCase();
   const res = await fetch(
-  'https://https://drivingschool-globaltalk.netlify.app/.netlify/functions/translate',
+  'https://drivingschool-globaltalk.netlify.app/.netlify/functions/translate',
   {
     method:'POST',
     headers:{'Content-Type':'application/json'},
