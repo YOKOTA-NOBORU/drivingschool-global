@@ -1,200 +1,24 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <meta name="theme-color" content="#0f7a3f">
-  <title>多言語音声アプリの使い方</title>
-  
-<style>
-  :root{
-    --green:#0f7a3f;
-    --green-2:#19a15a;
-    --green-dark:#07552c;
-    --green-soft:#e9f8ef;
-    --text:#173028;
-    --muted:#66756f;
-    --line:#dce9e2;
-    --card:#fff;
-    --warn:#fff7df;
-    --warn-line:#e4ba44;
-    --shadow:0 15px 38px rgba(11,80,42,.12);
-  }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{
-    margin:0;
-    color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-    background:linear-gradient(180deg,#f9fdfb,#eef6f2);
-  }
-  .page{width:min(850px,100%);margin:0 auto;padding:16px 14px 40px}
-  .topbar{
-    position:sticky;
-    top:8px;
-    z-index:10;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:15px;
-    padding:12px 14px;
-    border:1px solid rgba(15,122,63,.11);
-    border-radius:17px;
-    background:rgba(255,255,255,.93);
-    backdrop-filter:blur(10px);
-    box-shadow:0 8px 22px rgba(11,80,42,.08);
-  }
-  .back{color:var(--green-dark);text-decoration:none;font-weight:900}
-  .brand{font-size:12px;color:var(--muted)}
-  .hero{
-    padding:27px 22px;
-    border-radius:25px;
-    color:white;
-    background:linear-gradient(135deg,var(--green-dark),var(--green-2));
-    box-shadow:var(--shadow);
-  }
-  .hero h1{margin:0 0 8px;font-size:clamp(25px,5vw,37px)}
-  .hero p{margin:0;color:rgba(255,255,255,.88);line-height:1.75}
-  .card{
-    margin-top:16px;
-    padding:21px;
-    border:1px solid var(--line);
-    border-radius:21px;
-    background:var(--card);
-    box-shadow:0 8px 24px rgba(11,80,42,.07);
-  }
-  .card h2{margin:0 0 13px;font-size:20px}
-  .step{
-    display:grid;
-    grid-template-columns:38px 1fr;
-    gap:12px;
-    margin:17px 0;
-  }
-  .num{
-    width:36px;
-    height:36px;
-    display:grid;
-    place-items:center;
-    border-radius:12px;
-    color:white;
-    background:linear-gradient(var(--green),var(--green-2));
-    font-weight:900;
-  }
-  .step h3{margin:2px 0 5px;font-size:17px}
-  .step p{margin:0;color:var(--muted);line-height:1.75}
-  .tip,.admin-note{
-    margin-top:14px;
-    padding:15px 16px;
-    border-left:4px solid var(--green);
-    border-radius:13px;
-    background:var(--green-soft);
-    line-height:1.75;
-  }
-  .admin-note{background:var(--warn);border-left-color:var(--warn-line)}
-  .admin-note strong{display:block;margin-bottom:4px}
-  .flow{
-    display:grid;
-    grid-template-columns:1fr auto 1fr auto 1fr;
-    align-items:center;
-    gap:8px;
-    margin:14px 0;
-    padding:14px;
-    border-radius:16px;
-    background:#f7faf8;
-    text-align:center;
-    font-weight:900;
-  }
-  .flow span{padding:10px;border-radius:12px;background:white;border:1px solid var(--line)}
-  .flow b{color:var(--green)}
-  .links{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:10px;
-    margin-top:18px;
-  }
-  .links a{
-    padding:13px 14px;
-    border-radius:14px;
-    background:white;
-    border:1px solid var(--line);
-    color:var(--green-dark);
-    text-decoration:none;
-    font-weight:900;
-    text-align:center;
-  }
-  footer{margin-top:24px;text-align:center;color:#7b8983;font-size:13px}
-  @media(max-width:620px){
-    .flow{grid-template-columns:1fr}
-    .flow b{transform:rotate(90deg)}
-    .links{grid-template-columns:1fr}
-    .hero{padding:23px 18px}
-  }
-</style>
-
-</head>
-<body>
-  <main class="page">
-    <div class="topbar">
-      <a class="back" href="./">← ホームへ戻る</a>
-      <span class="brand">Driving School Global</span>
-    </div>
-
-    <section class="hero">
-      <h1>多言語音声アプリの使い方</h1>
-      <p>教習フレーズの音声再生、会話翻訳、お気に入り、履歴などを利用できます。</p>
-    </section>
-
-    <section class="card">
-      <h2>基本の使い方</h2>
-      <div class="step"><div class="num">1</div><div><h3>言語を選ぶ</h3><p>言語一覧から、使用したい言語を選びます。</p></div></div>
-<div class="step"><div class="num">2</div><div><h3>表示する項目を選ぶ</h3><p>「項目を選択」や教習・指導・検定などのボタンで、表示する内容を絞れます。</p></div></div>
-<div class="step"><div class="num">3</div><div><h3>文章を音声再生する</h3><p>外国語の文章をタップすると、その文章だけ再生されます。もう一度タップすると停止します。</p></div></div>
-<div class="step"><div class="num">4</div><div><h3>発音表示を切り替える</h3><p>「発音ON／OFF」で、カタカナなどの発音補助表示を切り替えます。</p></div></div>
-<div class="step"><div class="num">5</div><div><h3>お気に入りを使う</h3><p>星ボタンで登録し、お気に入り画面では並び替えもできます。</p></div></div>
-<div class="step"><div class="num">6</div><div><h3>履歴を確認する</h3><p>「履歴」から、以前再生したフレーズを確認・再生できます。</p></div></div>
-<div class="step"><div class="num">7</div><div><h3>会話翻訳を使う</h3><p>「会話翻訳」を押して日本語で話すと、選択した言語へ翻訳し、音声再生します。</p></div></div>
-<div class="step"><div class="num">8</div><div><h3>自動翻訳登録を使う</h3><p>新しい日本語フレーズを登録し、複数言語へ翻訳して追加できます。</p></div></div>
-<div class="step"><div class="num">9</div><div><h3>バックアップする</h3><p>端末内の編集内容や登録内容は、バックアップ機能で保存・復元できます。</p></div></div>
-      <div class="tip">音声が出ない場合は、端末の音量・消音設定を確認し、画面を一度タップしてから再生してください。</div>
-    </section>
-
-    <section class="card">
-      <h2>管理者向け編集機能</h2>
-
-      <div class="flow">
-        <span>タイトルを5回タップ</span>
-        <b>→</b>
-        <span>パスワード入力</span>
-        <b>→</b>
-        <span>編集モード</span>
-      </div>
-
-      <div class="step"><div class="num">1</div><div><h3>編集モードを開く</h3><p>音声アプリ上部のタイトルを5回連続でタップします。</p></div></div>
-<div class="step"><div class="num">2</div><div><h3>管理者用パスワードを入力する</h3><p>パスワード入力画面が表示されたら、管理者用パスワードを入力します。パスワードそのものは、この公開ガイドには掲載しません。</p></div></div>
-<div class="step"><div class="num">3</div><div><h3>必要な内容を編集する</h3><p>フレーズの追加・修正・削除、表示内容の調整、バックアップ・復元などを利用できます。</p></div></div>
-<div class="step"><div class="num">4</div><div><h3>編集内容を確認する</h3><p>編集後は通常画面へ戻り、表示や音声再生を確認します。</p></div></div>
-
-      <div class="admin-note">
-        <strong>編集内容の保存先について</strong>
-        編集した内容は、そのスマートフォン・タブレット・パソコンのブラウザ内に保存されます。
-        他の利用者の端末には反映されず、GitHubに保存されているオリジナルデータも変更されません。
-        端末ごとに独立してカスタマイズできます。
-      </div>
-
-      <div class="admin-note">
-        <strong>データ消去に注意</strong>
-        ブラウザのサイトデータを削除すると、その端末だけに保存した編集内容が消える場合があります。
-        大切な編集内容は、先にバックアップしてください。
-      </div>
-    </section>
-
-    <div class="links">
-      <a href="./voice/">多言語音声アプリを開く</a>
-      <a href="./">ホームメニューへ戻る</a>
-    </div>
-
-    <footer>© Driving School Global</footer>
-  </main>
-</body>
-</html>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0f7a3f"><title>多言語音声アプリの使い方</title><style>
+:root{--g:#0f7a3f;--g2:#19a15a;--gd:#07552c;--gs:#e9f8ef;--b:#2e6fd3;--t:#173028;--m:#66756f;--line:rgba(15,122,63,.16)}
+*{box-sizing:border-box}body{margin:0;color:var(--t);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic",Meiryo,sans-serif;background:linear-gradient(#fbfefc,#eef6f2)}
+.page{width:min(900px,100%);margin:auto;padding:14px}.hero{padding:26px 20px;border-radius:24px;color:#fff;background:linear-gradient(135deg,var(--gd),var(--g2));box-shadow:0 12px 30px rgba(11,80,42,.14)}
+h1{margin:0 0 8px;font-size:clamp(26px,5vw,40px)}.hero p{margin:0;line-height:1.7}.nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.nav a{color:#fff;text-decoration:none;border:1px solid #ffffff55;border-radius:999px;padding:8px 11px;font-weight:800;font-size:13px}
+.sec{margin-top:16px;padding:19px;border:1px solid var(--line);border-radius:21px;background:#ffffffee;box-shadow:0 10px 24px rgba(11,80,42,.09)}.sec h2{margin:0 0 12px;color:var(--gd);font-size:21px}.step{display:grid;grid-template-columns:38px 1fr;gap:10px;padding:12px 0;border-bottom:1px solid #e6eee9}.step:last-child{border-bottom:0}.n{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:var(--gs);color:var(--gd);font-weight:900}.step h3{margin:2px 0 4px}.step p{margin:0;color:var(--m);line-height:1.7}.call{margin-top:10px;padding:12px 13px;border-left:5px solid var(--g);border-radius:12px;background:var(--gs);line-height:1.7}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.box{padding:14px;border:1px solid #dcebe1;border-radius:15px;background:#fff}.box strong{display:block;margin-bottom:5px}.box p{margin:0;color:var(--m);line-height:1.65}.back{text-align:center;margin:22px 0}.back a{display:inline-block;text-decoration:none;color:#fff;background:var(--g);border-radius:999px;padding:10px 16px;font-weight:900}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.page{padding:10px}.sec{padding:16px}.hero{padding:22px 16px}}
+</style></head><body><main class="page"><header class="hero"><h1>多言語音声アプリの使い方</h1><p>フレーズ再生、会話翻訳、履歴などの最新版操作です。</p><nav class="nav"><a href="./">🏠 ホーム</a><a href="./guide-home.html">ホームの使い方</a><a href="./guide-voice.html">音声アプリ</a><a href="./guide-textbook.html">教本アプリ</a></nav></header>
+<section class="sec"><h2>基本操作</h2>
+<div class="step"><div class="n">1</div><div><h3>言語を選ぶ</h3><p>7外国語から選択します。</p></div></div>
+<div class="step"><div class="n">2</div><div><h3>項目やモードを選ぶ</h3><p>教習、指導、冬道、MT車、検定、質問、お気に入り、緊急などから絞り込みます。</p></div></div>
+<div class="step"><div class="n">3</div><div><h3>フレーズを押して再生</h3><p>カードを押すと、選択中の外国語で音声再生されます。</p></div></div></section>
+<section class="sec"><h2>会話翻訳</h2><div class="call"><strong>右下の緑色「💬 会話」ボタン</strong>から開きます。メニュー内の旧「会話翻訳」ボタンは廃止されています。</div>
+<div class="step"><div class="n">1</div><div><h3>翻訳先を選ぶ</h3><p>相手に伝えたい言語を選びます。</p></div></div>
+<div class="step"><div class="n">2</div><div><h3>日本語を入力する</h3><p>キーボードまたはスマホの音声入力を使えます。</p></div></div>
+<div class="step"><div class="n">3</div><div><h3>翻訳・再生</h3><p>翻訳結果を表示し、そのまま外国語音声を再生します。</p></div></div>
+<div class="step"><div class="n">4</div><div><h3>閉じる</h3><p>会話画面だけを閉じて音声アプリへ戻ります。</p></div></div></section>
+<section class="sec"><h2>その他の機能</h2><div class="grid">
+<div class="box"><strong>⭐ お気に入り</strong><p>よく使うフレーズを登録できます。</p></div>
+<div class="box"><strong>📜 履歴</strong><p>再生した内容を確認し、もう一度再生できます。</p></div>
+<div class="box"><strong>発音 ON/OFF</strong><p>発音表示を切り替えます。</p></div>
+<div class="box"><strong>＋自動翻訳登録</strong><p>日本語から7外国語の新しいフレーズを登録できます。</p></div>
+</div></section><div class="back"><a href="./">🏠 ホームメニューへ戻る</a></div></main></body></html>
