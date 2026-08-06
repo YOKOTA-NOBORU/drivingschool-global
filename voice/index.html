@@ -372,24 +372,88 @@ html body .star{
   color:#f1b700!important;
 }
 </style>
-</head><body>
+
+<style>
+/* フローティングボタン用の下余白 */
+body {
+  padding-bottom: 145px;
+}
+
+.floating-buttons {
+  position: fixed;
+  right: 14px;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+  z-index: 5000;
+}
+
+.floating-button {
+  width: 106px;
+  min-height: 46px;
+  padding: 9px 14px;
+  border: 2px solid rgba(255,255,255,.95);
+  border-radius: 999px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  appearance: none;
+  -webkit-appearance: none;
+  color: #fff !important;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(0,0,0,.24);
+  opacity: .9;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.floating-label{
+    display:inline-block;
+    width:52px;
+    text-align:center;
+}
+
+.floating-button:active {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.floating-conversation {
+  background: #159447;
+}
+
+.floating-home {
+  background: #1266b1;
+}
+
+.floating-icon {
+  font-size: 19px;
+}
+
+@media (max-width:560px) {
+  .floating-buttons {
+    right: 10px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .floating-button {
+    min-width: 100px;
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+}
+</style>
+
+</head>
+<body>
 <header><h1 id="appTitle">教習所向け 多言語音声アプリ</h1>
-  <div style="margin:10px 0;">
-  <a href="../"
-     style="display:inline-flex;
-            align-items:center;
-            gap:6px;
-            background:#ffffff;
-            color:#0a5d30;
-            text-decoration:none;
-            padding:10px 16px;
-            border:2px solid #ffffff;
-            border-radius:10px;
-            font-weight:bold;
-            box-shadow:0 2px 6px rgba(0,0,0,0.18);">
-    🏠 ホームメニューへ戻る
-  </a>
-</div>
+  
   <p class="sub">全165フレーズ / 自動翻訳登録 / 表示切替 / 7外国語（日本語を含め8か国語）</p><div id="adminBadge" class="adminBadge">編集モード ON</div></header><section class="toolbar"><div class="searchRow"><input id="q" placeholder="検索"></div><div class="controls"><select id="lang"><option value="vi">ベトナム語</option><option value="en">英語</option><option value="zh">中国語</option><option value="pt">ポルトガル語</option><option value="idn">インドネシア語</option><option value="ne">ネパール語</option><option value="my">ミャンマー語</option></select><select id="cat"></select>
 <button id="multiCatBtn" class="multiCatBtn" onclick="toggleMultiCatPanel()">項目を選択</button>
 <div id="multiCatPanel" class="multiCatPanel">
@@ -400,7 +464,7 @@ html body .star{
     <button class="formbtn" onclick="clearMultiCategories()">解除</button>
   </div>
 </div>
-<select id="rate"><option value="0.75">ゆっくり</option><option value="0.9" selected>標準</option><option value="1.05">少し速い</option></select></div><div class="modes"><button data-mode="すべて" class="active">すべて</button><button data-mode="教習">教習</button><button data-mode="指導">指導</button><button data-mode="冬道">冬道</button><button data-mode="MT車">MT車</button><button data-mode="検定">検定</button><button data-mode="質問">質問</button><button data-mode="お気に入り">⭐お気に入り</button><button data-mode="緊急" class="danger">🚨緊急</button></div><div class="filters"><button data-filter="冬道">冬道 ON</button><button data-filter="MT車">MT車 ON</button><button data-filter="検定">検定 ON</button><button data-filter="緊急">緊急 ON</button><button data-filter="質問">質問 ON</button></div><div class="tools"><button id="rubyToggleBtn" class="toolbtn rubyToggleBtn" onclick="toggleRubyDisplay()">発音 ON</button><button class="toolbtn" onclick="openConversationModal()">💬会話翻訳</button><button class="toolbtn" onclick="toggleAdd()">＋自動翻訳登録</button><button class="toolbtn adminOnly" onclick="toggleBackup()">💾バックアップ</button><button class="toolbtn adminOnly" onclick="toggleHiddenPanel()">👁非表示管理</button><button class="adminExit adminOnly" onclick="disableAdminMode()">編集終了</button><button class="toolbtn" onclick="toggleHistory()">📜 履歴</button></div><div id="status" class="status">音声準備中...</div><div id="count" class="count"></div>
+<select id="rate"><option value="0.75">ゆっくり</option><option value="0.9" selected>標準</option><option value="1.05">少し速い</option></select></div><div class="modes"><button data-mode="すべて" class="active">すべて</button><button data-mode="教習">教習</button><button data-mode="指導">指導</button><button data-mode="冬道">冬道</button><button data-mode="MT車">MT車</button><button data-mode="検定">検定</button><button data-mode="質問">質問</button><button data-mode="お気に入り">⭐お気に入り</button><button data-mode="緊急" class="danger">🚨緊急</button></div><div class="filters"><button data-filter="冬道">冬道 ON</button><button data-filter="MT車">MT車 ON</button><button data-filter="検定">検定 ON</button><button data-filter="緊急">緊急 ON</button><button data-filter="質問">質問 ON</button></div><div class="tools"><button id="rubyToggleBtn" class="toolbtn rubyToggleBtn" onclick="toggleRubyDisplay()">発音 ON</button><button class="toolbtn" onclick="toggleAdd()">＋自動翻訳登録</button><button class="toolbtn adminOnly" onclick="toggleBackup()">💾バックアップ</button><button class="toolbtn adminOnly" onclick="toggleHiddenPanel()">👁非表示管理</button><button class="adminExit adminOnly" onclick="disableAdminMode()">編集終了</button><button class="toolbtn" onclick="toggleHistory()">📜 履歴</button></div><div id="status" class="status">音声準備中...</div><div id="count" class="count"></div>
 <div id="addPanel" class="panel">
 <b>新規フレーズ登録・自動翻訳</b>
 <p class="small">日本語だけ入力して「7言語へ自動翻訳」を押してください。翻訳結果を確認・修正してから登録できます。</p>
@@ -764,6 +828,13 @@ if(localStorage.getItem('admin_mode_enabled')==='1'){
   document.body.classList.add('adminMode');
 }
 const titleEl = document.getElementById('appTitle');
+const params = new URLSearchParams(location.search);
+
+if (params.get("conversation") === "1") {
+  titleEl.textContent = "📖 運転教本アプリ - 会話翻訳";
+  document.title = "運転教本アプリ - 会話翻訳";
+}
+
 if(titleEl){
   titleEl.addEventListener('click',()=>{
     titleTapCount++;
@@ -1684,20 +1755,87 @@ let convTranslatedText = '';
 let convTranslatedLang = 'vi';
 
 function openConversationModal(){
-  try{if(typeof addOverlay!=='undefined')addOverlay.classList.remove('show');}catch(_){}
-  try{if(typeof editOverlay!=='undefined')editOverlay.classList.remove('show');}catch(_){}
-  try{if(typeof commonPanelOverlay!=='undefined')commonPanelOverlay.classList.remove('show');}catch(_){}
-  try{if(typeof addPanel!=='undefined')addPanel.classList.remove('show');}catch(_){}
-  try{if(typeof editPanel!=='undefined')editPanel.classList.remove('show');}catch(_){}
-  convOverlay.classList.add('show');
-  document.body.classList.add('modalOpen');
   try{
-    convLang.value = (typeof lang!=='undefined' && lang.value) ? lang.value : 'vi';
+    if(typeof addOverlay !== 'undefined'){
+      addOverlay.classList.remove('show');
+    }
   }catch(_){}
-  setTimeout(()=>{try{convJp.focus();}catch(_){}},120);
+
+  try{
+    if(typeof editOverlay !== 'undefined'){
+      editOverlay.classList.remove('show');
+    }
+  }catch(_){}
+
+  try{
+    if(typeof commonPanelOverlay !== 'undefined'){
+      commonPanelOverlay.classList.remove('show');
+    }
+  }catch(_){}
+
+  try{
+    if(typeof addPanel !== 'undefined'){
+      addPanel.classList.remove('show');
+    }
+  }catch(_){}
+
+  try{
+    if(typeof editPanel !== 'undefined'){
+      editPanel.classList.remove('show');
+    }
+  }catch(_){}
+
+  convOverlay.classList.add('show');
+
+  const fromTextbook =
+    new URLSearchParams(location.search).get('conversation') === '1';
+
+  const convTitle = document.querySelector('.convModalTitle');
+
+  if(fromTextbook){
+    convJp.placeholder =
+      '教習生に説明する内容を入力してください';
+
+    if(convTitle){
+     convTitle.innerHTML =
+    '📖 教習説明を翻訳 <span style="font-size:12px;color:#8490a3">翻訳：Google</span>';
+    }
+  }else{
+    convJp.placeholder =
+      '教習生に伝えたい日本語を入力してください（キーボードのマイク入力も使えます）';
+
+    if(convTitle){
+      convTitle.innerHTML =
+        '会話翻訳 <span style="font-size:12px;color:#8490a3">翻訳：Google</span>';
+    }
+  }
+
+  document.body.classList.add('modalOpen');
+
+  try{
+    convLang.value =
+      (typeof lang !== 'undefined' && lang.value)
+        ? lang.value
+        : 'vi';
+  }catch(_){}
+
+  setTimeout(() => {
+    try{
+      convJp.focus();
+    }catch(_){}
+  }, 120);
 }
 
 function closeConversationModal(){
+  const params = new URLSearchParams(window.location.search);
+
+  // 運転教本アプリから開いた場合
+  if (params.get('conversation') === '1') {
+    window.location.href = '../textbook/';
+    return;
+  }
+
+  // 音声アプリ内から開いた場合
   convOverlay.classList.remove('show');
   document.body.classList.remove('modalOpen');
 }
@@ -2087,7 +2225,18 @@ if ('serviceWorker' in navigator) {
     <div id="convResult" class="convResult">翻訳結果がここに表示されます。</div>
     <div class="convActions">
       <button class="formbtn primary" onclick="speakConversationResult()">もう一度再生</button>
-      <button class="formbtn" onclick="closeConversationModal()">閉じる</button>
+      <button
+  class="formbtn"
+  onclick="
+    if (new URLSearchParams(location.search).get('conversation') === '1') {
+      location.href = '../textbook/';
+    } else {
+      closeConversationModal();
+    }
+  "
+>
+  閉じる
+</button>
     </div>
     <div class="convSmall">※自動翻訳はインターネット接続が必要です。翻訳結果はフレーズ登録されません。</div>
   </div>
@@ -2351,4 +2500,40 @@ function toggleHistory(){
 }
 </script>
 
-</body></html>
+<div class="floating-buttons">
+
+  <button
+    type="button"
+    class="floating-button floating-conversation"
+    onclick="openConversationModal()"
+    aria-label="会話翻訳を開く">
+
+    <span class="floating-icon">💬</span>
+    <span class="floating-label">会話</span>
+
+  </button>
+
+  <a
+    class="floating-button floating-home"
+    href="../"
+    aria-label="ホームメニューへ戻る">
+
+    <span class="floating-icon">🏠</span>
+    <span class="floating-label">ホーム</span>
+
+  </a>
+
+</div>
+
+<script>
+setTimeout(function () {
+  if (
+    new URLSearchParams(location.search).get("conversation") === "1"
+  ) {
+    openConversationModal();
+  }
+}, 300);
+</script>
+
+</body>
+</html>

@@ -663,3 +663,88 @@ body.pdf-split-open #pdfSideFrame{
 .section.pdf-follow-active .accordion{
   background:#dff3e5;
 }
+/* フローティングボタンのための下余白 */
+body {
+  padding-bottom: 150px;
+}
+
+/* 右下のフローティングボタン */
+.floating-buttons {
+  position: fixed;
+  right: 14px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 3000;
+}
+
+.floating-button {
+  min-height: 48px;
+  width: 106px;
+  padding: 10px 15px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
+  opacity: 0.9;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.floating-button:hover,
+.floating-button:focus,
+.floating-button:active {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* 上：会話翻訳 */
+.conversation-button {
+  background: #0a7f4f;
+}
+
+/* 下：ホーム */
+.home-button {
+  background: #1266b1;
+}
+
+.floating-icon {
+  font-size: 20px;
+}
+
+.floating-label {
+  white-space: nowrap;
+}
+
+/* スマホでは少しコンパクトにする */
+@media (max-width: 560px) {
+  body {
+    padding-bottom: 145px;
+  }
+
+  .floating-buttons {
+    right: 10px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+
+  .floating-button {
+    min-height: 46px;
+    padding: 9px 13px;
+    font-size: 14px;
+  }
+
+  .floating-icon {
+    font-size: 19px;
+  }
+}

@@ -2031,4 +2031,18 @@ function copyFromJapanese(){const jp=newJp.value.trim();if(!jp)return alert('日
 function addPhrase(){const jp=newJp.value.trim();if(!jp)return alert('日本語を入力してください');custom.push({custom:true,mode:newMode.value,category:newCat.value.trim()||newMode.value,jp,vi:newVi.value.trim()||jp,ruby:newRuby.value.trim(),en:newEn.value.trim()||jp,zh:newZh.value.trim()||jp,pt:newPt.value.trim()||jp,my:newMy.value.trim()||jp,id:newId.value.trim()||jp,ne:newNe.value.trim()||jp});localStorage.setItem('custom_phrases_ultimate_auto',JSON.stringify(custom));[newJp,newVi,newRuby,newEn,newZh,newPt,newMy,newId,newNe].forEach(x=>x.value='');refreshCategories();render();alert('登録しました');}
 </script>
 
+<script>
+window.addEventListener('load', function () {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get('conversation') === '1') {
+    setTimeout(function () {
+      if (typeof openConversationModal === 'function') {
+        openConversationModal();
+      }
+    }, 300);
+  }
+});
+</script>
+
 </body></html>
