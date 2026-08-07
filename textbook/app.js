@@ -77,6 +77,112 @@ function addSpeechStyles(){
     .foreign-block:active{transform:scale(.99)}
     .foreign-block.playing{background:#e4f5e9;border-left-color:#2f965c;box-shadow:0 0 0 2px rgba(47,150,92,.14)}
     .tap-speech-hint{margin-top:7px;color:#14532d;font-size:12px;font-weight:800}
+
+    /* 日本語と外国語を1組として表示：完成版 Ver.3 */
+    .translation-pair{
+      margin:8px 0;
+      border:1px solid #d8e7dc;
+      border-radius:15px;
+      overflow:hidden;
+      background:#fff;
+      box-shadow:0 3px 12px rgba(17,72,42,.07);
+    }
+    .translation-pair .jp-block{
+      margin:0;
+      padding:12px 14px 11px;
+      border:0;
+      border-radius:0;
+      background:#fff;
+    }
+    .translation-pair .foreign-block{
+      display:none;
+      margin:0;
+      padding:12px 14px;
+      border:0;
+      border-top:1px solid #d5eadb;
+      border-left:7px solid #159447;
+      border-radius:0;
+      background:linear-gradient(135deg,#eaf8ee,#f6fcf8);
+    }
+    article.section.show-foreign .translation-pair .foreign-block{
+      display:block;
+    }
+
+    .translation-pair .jp-label,
+    .translation-pair .foreign-label{
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      min-height:25px;
+      padding:4px 9px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.01em;
+    }
+    .translation-pair .jp-label{
+      color:#31483a;
+      background:#eef3ef;
+    }
+    .translation-pair .foreign-label{
+      color:#075f2a;
+      background:#d9f1e1;
+    }
+
+    .translation-pair .jp-text,
+    .translation-pair .foreign-text{
+      margin:7px 0 0;
+      line-height:1.68;
+    }
+    .translation-pair .jp-text{
+      color:#172033;
+      font-weight:700;
+    }
+    .translation-pair .foreign-text{
+      color:#08783a;
+      font-weight:850;
+      font-size:1.08em;
+    }
+    .translation-pair .tap-speech-hint{
+      margin-top:6px;
+      color:#14532d;
+      font-size:11px;
+      font-weight:900;
+      opacity:.88;
+    }
+
+    /* 種類ごとの見分けやすいラベル＋アイコン */
+    .translation-pair[data-kind="説明"] .jp-label::before{content:"📘"}
+    .translation-pair[data-kind="教官ワンポイント"] .jp-label::before{content:"👨‍🏫"}
+    .translation-pair[data-kind="検定ポイント"] .jp-label::before{content:"✅"}
+    .translation-pair[data-kind="よくある失敗"] .jp-label::before{content:"⚠️"}
+    .translation-pair[data-kind="覚えておきたいこと"] .jp-label::before{content:"🧠"}
+    .translation-pair[data-kind="教習で使う一言"] .jp-label::before{content:"💬"}
+
+    .translation-pair[data-kind="説明"] .jp-label{background:#edf3f0;color:#31483a}
+    .translation-pair[data-kind="教官ワンポイント"] .jp-label{background:#fff3c4;color:#6a4b00}
+    .translation-pair[data-kind="検定ポイント"] .jp-label{background:#e7f0ff;color:#174e9b}
+    .translation-pair[data-kind="よくある失敗"] .jp-label{background:#ffe7e7;color:#9b1c31}
+    .translation-pair[data-kind="覚えておきたいこと"] .jp-label{background:#eee8ff;color:#5c3aa8}
+    .translation-pair[data-kind="教習で使う一言"] .jp-label{background:#e5f7f1;color:#07664c}
+
+    @media(max-width:560px){
+      .translation-pair{
+        margin:9px 0;
+        border-radius:14px;
+      }
+      .translation-pair .jp-block,
+      .translation-pair .foreign-block{
+        padding:11px 12px;
+      }
+      .translation-pair .jp-text,
+      .translation-pair .foreign-text{
+        line-height:1.62;
+      }
+      .translation-pair .foreign-text{
+        font-size:1em;
+      }
+    }
   `;
   document.head.appendChild(s);
 }
@@ -175,38 +281,42 @@ function renderList(){
     article.className="section";
     article.dataset.explanationIndex=String(index);
 
-    const ja=(block.ja||[])
-      .filter(x=>visibleKinds.has(x.label))
-      .map(x=>`<div class="jp-block"><div class="jp-label">${x.label}</div><p class="jp-text">${x.text}</p></div>`)
-      .join("");
-
-    const foreign=(block[lang]||[])
-      .filter((x,i)=>visibleKinds.has((block.ja||[])[i]?.label))
-      .map(x=>`
-        <div class="foreign-block" role="button" tabindex="0" data-speech-text="${encodeURIComponent(x.text||"")}">
-          <div class="foreign-label">${x.label}</div>
-          <p class="foreign-text">${x.text}</p>
-          <div class="tap-speech-hint">🔊 タップで再生</div>
+    const pairs=(block.ja||[])
+      .map((jp,i)=>({jp,tr:(block[lang]||[])[i]}))
+      .filter(({jp})=>jp && visibleKinds.has(jp.label))
+      .map(({jp,tr})=>`
+        <div class="translation-pair" data-kind="${jp.label}">
+          <div class="jp-block">
+            <div class="jp-label">${jp.label}</div>
+            <p class="jp-text">${jp.text}</p>
+          </div>
+          ${tr ? `
+          <div class="foreign-block"
+               role="button"
+               tabindex="0"
+               data-speech-text="${encodeURIComponent(tr.text||"")}">
+            <div class="foreign-label">${tr.label||LANGS[lang]||"外国語"}</div>
+            <p class="foreign-text">${tr.text}</p>
+            <div class="tap-speech-hint">🔊 タップで再生</div>
+          </div>` : ""}
         </div>
-      `)
-      .join("");
+      `).join("");
 
     article.innerHTML=`
-      <button class="accordion" type="button">
+      <button class="accordion" type="button" aria-expanded="false">
         <span>${index+1}. ${block.title}</span><span class="mark">▶</span>
       </button>
-      ${ja}
-      <div class="foreign">${foreign}</div>
+      <div class="paired-content">${pairs}</div>
     `;
 
     const accordion=article.querySelector(".accordion");
-    const foreignArea=article.querySelector(".foreign");
     const mark=article.querySelector(".mark");
 
     accordion.onclick=()=>{
       stopSpeech();
-      foreignArea.classList.toggle("show");
-      mark.textContent=foreignArea.classList.contains("show")?"▼":"▶";
+      const isOpen=article.classList.toggle("show-foreign");
+      accordion.setAttribute("aria-expanded",String(isOpen));
+      mark.textContent=isOpen?"▼":"▶";
     };
 
     article.querySelectorAll(".foreign-block").forEach(blockEl=>{
