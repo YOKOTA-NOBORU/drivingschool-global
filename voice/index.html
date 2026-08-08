@@ -562,7 +562,12 @@ function checkStorageAvailable(){
     return false;
   }
 }
-function allPhrases(){return [...BASE,...custom].map((p,i)=>{const id=i+1;let x={...p,...(edited[id]||{}),id:id};for(const l of EXTRA_LANGS){if(!x[l]&&autoTranslations[l]&&autoTranslations[l][x.jp])x[l]=autoTranslations[l][x.jp];if(!x[l])x[l]='翻訳データを準備中…';}return x;});}function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}function loadVoices(){if(!('speechSynthesis'in window))return;voices=speechSynthesis.getVoices();let cfg=LANGS[lang.value],p=cfg.code.split('-')[0].toLowerCase();voice=voices.find(v=>(v.lang||'').toLowerCase()===cfg.code.toLowerCase())||voices.find(v=>(v.lang||'').toLowerCase().startsWith(p))||null;status.textContent=voice?cfg.label+'音声：'+voice.name+' / '+voice.lang:cfg.label+'音声が見つかりません';}function speak(t,jp=''){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();let cfg=LANGS[lang.value],u=new SpeechSynthesisUtterance(t);u.lang=cfg.code;if(voice)u.voice=voice;u.rate=parseFloat(rate.value);speechSynthesis.speak(u);addHistory(jp,t,cfg.label);}function addHistory(jp,t,label){if(!jp)return;history.unshift({jp:jp,t:t,label:label,time:new Date().toLocaleTimeString()});history=history.slice(0,30);localStorage.setItem('hist_ultimate_auto',JSON.stringify(history));}function stopVoice(){if('speechSynthesis'in window)speechSynthesis.cancel();}function okMode(p){if(mode==='すべて'&&hiddenModes.has(p.mode))return false;return mode==='すべて'||(mode==='お気に入り'?favs.has(p.id):p.mode===mode);}function render(){document.body.classList.toggle('allmode',mode==='すべて');document.body.classList.toggle('favMode',mode==='お気に入り');document.body.classList.toggle('favMode',mode==='お気に入り');let l=lang.value,c=cat.value,query=q.value.trim().toLowerCase();let arr=allPhrases().filter(p=>okMode(p)&&(c==='すべて'||p.category===c)&&(!query||(p.jp+' '+p[l]+' '+p.ruby+' '+p.category).toLowerCase().includes(query)));count.textContent='表示：'+arr.length+'件 / 全'+allPhrases().length+'件（登録 '+custom.length+'件）';arr=arr.filter(p=>!hiddenPhraseIds.has(Number(p.id)));arr=sortFavorites(arr);arr=arr.filter(p=>!hiddenPhraseIds.has(Number(p.id)));arr=sortFavoritesRestored(arr);
+function allPhrases(){return [...BASE,...custom].map((p,i)=>{const id=i+1;let x={...p,...(edited[id]||{}),id:id};for(const l of EXTRA_LANGS){if(!x[l]&&autoTranslations[l]&&autoTranslations[l][x.jp])x[l]=autoTranslations[l][x.jp];if(!x[l])x[l]='翻訳データを準備中…';}return x;});}function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}function loadVoices(){if(!('speechSynthesis'in window))return;voices=speechSynthesis.getVoices();let cfg=LANGS[lang.value],p=cfg.code.split('-')[0].toLowerCase();voice=voices.find(v=>(v.lang||'').toLowerCase()===cfg.code.toLowerCase())||voices.find(v=>(v.lang||'').toLowerCase().startsWith(p))||null;status.textContent=voice?cfg.label+'音声：'+voice.name+' / '+voice.lang:cfg.label+'音声が見つかりません';}function speak(t,jp=''){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();let cfg=LANGS[lang.value],u=new SpeechSynthesisUtterance(t);u.lang=cfg.code;if(voice)u.voice=voice;u.rate=parseFloat(rate.value);speechSynthesis.speak(u);addHistory(jp,t,cfg.label);}function addHistory(jp,t,label){if(!jp)return;history.unshift({jp:jp,t:t,label:label,time:new Date().toLocaleTimeString()});history=history.slice(0,30);localStorage.setItem('hist_ultimate_auto',JSON.stringify(history));}function stopVoice(){if('speechSynthesis'in window)speechSynthesis.cancel();}function okMode(p){if(mode==='すべて'&&hiddenModes.has(p.mode))return false;return mode==='すべて'||(mode==='お気に入り'?favs.has(p.id):p.mode===mode);}function render(){document.body.classList.toggle('allmode',mode==='すべて');document.body.classList.toggle('favMode',mode==='お気に入り');document.body.classList.toggle('favMode',mode==='お気に入り');let l=lang.value,c=cat.value,query=q.value.trim().toLowerCase();let arr=allPhrases().filter(p=>
+  okMode(p) &&
+  (c==='すべて'||p.category===c) &&
+  (typeof selectedCategoriesMulti==='undefined' || selectedCategoriesMulti.size===0 || selectedCategoriesMulti.has(p.category)) &&
+  (!query||(p.jp+' '+p[l]+' '+p.ruby+' '+p.category).toLowerCase().includes(query))
+);count.textContent='表示：'+arr.length+'件 / 全'+allPhrases().length+'件（登録 '+custom.length+'件）';arr=arr.filter(p=>!hiddenPhraseIds.has(Number(p.id)));arr=sortFavorites(arr);arr=arr.filter(p=>!hiddenPhraseIds.has(Number(p.id)));arr=sortFavoritesRestored(arr);
 if(mode!=='お気に入り'){
   const __catOrder=[...new Set(arr.map(p=>p.category))];
   arr=arr.slice().sort((a,b)=>__catOrder.indexOf(a.category)-__catOrder.indexOf(b.category));
@@ -1633,82 +1638,7 @@ function selectAllCategories(){
   buildMultiCategoryPanel();
   render();
 }
-const originalRenderMultiCategory = render;
-render = function(){
-  originalRenderMultiCategory();
-  if(selectedCategoriesMulti.size){
-    const allowed = new Set(allPhrases().filter(p=>selectedCategoriesMulti.has(p.category)).map(p=>String(p.id)));
-    document.querySelectorAll('.card[data-id]').forEach(card=>{
-      card.style.display = allowed.has(String(card.dataset.id)) ? '' : 'none';
-    });
-  }
-  updateMultiCatButton();
-};
 setTimeout(()=>{buildMultiCategoryPanel();updateMultiCatButton();},0);
-
-/* multi category header cleanup patch */
-function cleanupCategoryHeadersAfterMultiFilter(){
-  // 項目見出しだけが残らないように、次の項目見出しまでに表示カードが無い見出しを消す
-  const list=document.getElementById('list');
-  if(!list)return;
-  const children=[...list.children];
-  children.forEach(el=>el.classList && el.classList.remove('hiddenByMulti'));
-
-  for(let i=0;i<children.length;i++){
-    const el=children[i];
-    if(!el.classList)continue;
-    const isHeader = el.classList.contains('catHeader') || el.classList.contains('section') || el.classList.contains('groupTitle') || el.tagName==='H2' || el.tagName==='H3';
-    if(!isHeader)continue;
-
-    let hasVisibleCard=false;
-    for(let j=i+1;j<children.length;j++){
-      const next=children[j];
-      if(next.classList){
-        const nextIsHeader = next.classList.contains('catHeader') || next.classList.contains('section') || next.classList.contains('groupTitle') || next.tagName==='H2' || next.tagName==='H3';
-        if(nextIsHeader)break;
-        if(next.classList.contains('card') && next.style.display!=='none'){
-          hasVisibleCard=true;
-          break;
-        }
-      }
-    }
-    if(!hasVisibleCard)el.classList.add('hiddenByMulti');
-  }
-}
-
-/* multi category render final override */
-const _renderBeforeHeaderCleanup = render;
-render = function(){
-  _renderBeforeHeaderCleanup();
-  if(typeof selectedCategoriesMulti!=='undefined' && selectedCategoriesMulti.size){
-    const allowed = new Set(allPhrases().filter(p=>selectedCategoriesMulti.has(p.category)).map(p=>String(p.id)));
-    document.querySelectorAll('.card[data-id]').forEach(card=>{
-      card.style.display = allowed.has(String(card.dataset.id)) ? '' : 'none';
-    });
-  }
-  cleanupCategoryHeadersAfterMultiFilter();
-  if(typeof updateMultiCatButton==='function')updateMultiCatButton();
-};
-
-/* multi category pre-render filter final patch */
-const __originalRenderForMultiPreFilter = render;
-render = function(){
-  if(typeof selectedCategoriesMulti !== 'undefined' && selectedCategoriesMulti.size){
-    const __originalAllPhrases = allPhrases;
-    const selected = new Set([...selectedCategoriesMulti]);
-    allPhrases = function(){
-      return __originalAllPhrases().filter(p => selected.has(p.category));
-    };
-    try{
-      __originalRenderForMultiPreFilter();
-    }finally{
-      allPhrases = __originalAllPhrases;
-    }
-  }else{
-    __originalRenderForMultiPreFilter();
-  }
-  if(typeof updateMultiCatButton==='function')updateMultiCatButton();
-};
 
 let rubyVisible = localStorage.getItem('ruby_visible_setting') !== '0';
 function applyRubyDisplay(){
