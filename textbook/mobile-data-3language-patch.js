@@ -1,169 +1,150 @@
-/* 教本アプリ：追加3言語を項目番号と並び順で反映 */
+/* 教本アプリ：追加3言語を項目タイトルと内容に合わせて反映（欠落防止版） */
 (() => {
   "use strict";
 
+  const LANGS = ["id", "ne", "my"];
+
   const LABELS = {
-    "説明": {
-      id: "Penjelasan",
-      ne: "व्याख्या",
-      my: "ရှင်းလင်းချက်"
-    },
-    "教官ワンポイント": {
-      id: "Poin instruktur",
-      ne: "प्रशिक्षकको सुझाव",
-      my: "နည်းပြအကြံပြုချက်"
-    },
-    "検定ポイント": {
-      id: "Poin ujian",
-      ne: "परीक्षण बुँदा",
-      my: "စာမေးပွဲအချက်"
-    },
-    "よくある失敗": {
-      id: "Kesalahan umum",
-      ne: "सामान्य गल्तीहरू",
-      my: "အဖြစ်များသောအမှားများ"
-    },
-    "覚えておきたいこと": {
-      id: "Hal yang perlu diingat",
-      ne: "याद राख्नुपर्ने कुरा",
-      my: "မှတ်သားရန်"
-    },
-    "教習で使う一言": {
-      id: "Ungkapan saat pelajaran",
-      ne: "प्रशिक्षणमा प्रयोग हुने वाक्य",
-      my: "သင်ခန်းစာတွင်သုံးသောစကား"
-    }
+    "説明": { id: "Penjelasan", ne: "व्याख्या", my: "ရှင်းလင်းချက်" },
+    "教官ワンポイント": { id: "Poin instruktur", ne: "प्रशिक्षकको सुझाव", my: "နည်းပြအကြံပြုချက်" },
+    "検定ポイント": { id: "Poin ujian", ne: "परीक्षण बुँदा", my: "စာမေးပွဲအချက်" },
+    "よくある失敗": { id: "Kesalahan umum", ne: "सामान्य गल्तीहरू", my: "အဖြစ်များသောအမှားများ" },
+    "覚えておきたいこと": { id: "Hal yang perlu diingat", ne: "याद राख्नुपर्ने कुरा", my: "မှတ်သားရန်" },
+    "教習で使う一言": { id: "Ungkapan saat pelajaran", ne: "प्रशिक्षणमा प्रयोग हुने वाक्य", my: "သင်ခန်းစာတွင်သုံးသောစကား" }
   };
 
-  if (
-    typeof textbookData === "undefined" ||
-    !Array.isArray(textbookData)
-  ) {
+  if (typeof textbookData === "undefined" || !Array.isArray(textbookData)) {
     console.error("textbookData が見つかりません。");
     return;
   }
-
-  if (
-    typeof MOBILE_ITEMS === "undefined" ||
-    !Array.isArray(MOBILE_ITEMS)
-  ) {
+  if (typeof MOBILE_ITEMS === "undefined" || !Array.isArray(MOBILE_ITEMS)) {
     console.error("MOBILE_ITEMS が見つかりません。");
     return;
   }
 
-  /*
-    data.js の第2段階は id:23～38、
-    mobile-data.js の第2段階は id:1～16 になっているため、
-    idではなく「段階ごとの並び順」で対応させます。
-  */
-  const sourceByStage = new Map();
+  const normalizeTitle = (s) => String(s || "")
+    .replace(/[、，]/g, "・")
+    .replace(/\s+/g, "")
+    .replace(/[（）()]/g, "")
+    .replace(/・+/g, "・");
 
+  const sourceByStage = new Map();
   textbookData.forEach(item => {
     const stage = Number(item.stage || 1);
     if (!sourceByStage.has(stage)) sourceByStage.set(stage, []);
     sourceByStage.get(stage).push(item);
   });
+  sourceByStage.forEach(items => items.sort((a,b) => Number(a.id||0)-Number(b.id||0)));
 
-  sourceByStage.forEach(items => {
-    items.sort((a, b) => Number(a.id || 0) - Number(b.id || 0));
-  });
+  function findSourceItem(mobileItem, stage, indexInStage) {
+    const sources = sourceByStage.get(stage) || [];
+    const mt = normalizeTitle(mobileItem.title);
+    const byTitle = sources.find(s => normalizeTitle(s.title) === mt);
+    return byTitle || sources[indexInStage] || null;
+  }
 
-  const targetIndexByStage = new Map();
+  const stageCounters = new Map();
 
   MOBILE_ITEMS.forEach(mobileItem => {
     const stage = Number(mobileItem.stage || 1);
-    const targetIndex = targetIndexByStage.get(stage) || 0;
-    const sourceItem = sourceByStage.get(stage)?.[targetIndex];
+    const idx = stageCounters.get(stage) || 0;
+    stageCounters.set(stage, idx + 1);
 
-    targetIndexByStage.set(stage, targetIndex + 1);
+    const sourceItem = findSourceItem(mobileItem, stage, idx);
+    const targetBlocks = Array.isArray(mobileItem.blocks) ? mobileItem.blocks : [];
 
+    /*
+      重要：翻訳元がない項目／ブロックでも、追加3言語の配列そのものは必ず作る。
+      これにより「説明」が丸ごと消える現象を防ぐ。
+      翻訳が存在する箇所は翻訳文を使い、存在しない箇所は日本語本文を表示する。
+    */
     if (!sourceItem) {
-      console.warn(
-        "翻訳元が見つかりません:",
-        `第${stage}段階 ${targetIndex + 1}項目`,
-        mobileItem.title
-      );
+      targetBlocks.forEach(targetBlock => {
+        const ja = Array.isArray(targetBlock.ja) ? targetBlock.ja : [];
+        LANGS.forEach(lang => {
+          targetBlock[lang] = ja.map(entry => ({
+            label: LABELS[entry.label]?.[lang] || entry.label || "",
+            text: entry.text || ""
+          }));
+        });
+      });
+      console.warn("翻訳元がないため日本語本文で表示:", `第${stage}段階`, mobileItem.title);
       return;
     }
 
-    const targetBlocks = mobileItem.blocks || [];
-
-    /*
-      data.jsが sections形式の場合
-      1つのsectionを1つの画面カードとして対応させる
-    */
     if (Array.isArray(sourceItem.sections)) {
       targetBlocks.forEach((targetBlock, blockIndex) => {
-        const sourceSection = sourceItem.sections[blockIndex];
-        if (!sourceSection) return;
+        const sourceSection = sourceItem.sections[blockIndex] || null;
+        const ja = Array.isArray(targetBlock.ja) ? targetBlock.ja : [];
 
-        const japaneseItems = Array.isArray(targetBlock.ja)
-          ? targetBlock.ja
-          : [];
-
-        ["id", "ne", "my"].forEach(lang => {
-          targetBlock[lang] = japaneseItems.map((entry, entryIndex) => {
-            const translatedText =
-              entryIndex === 0
-                ? sourceSection.translations?.[lang]
-                : "";
-
+        LANGS.forEach(lang => {
+          targetBlock[lang] = ja.map((entry, entryIndex) => {
+            const translatedText = (entryIndex === 0 && sourceSection)
+              ? (sourceSection.translations?.[lang] || "")
+              : "";
             return {
-              label:
-                LABELS[entry.label]?.[lang] ||
-                entry.label ||
-                "",
-              text:
-                translatedText ||
-                entry.text ||
-                ""
+              label: LABELS[entry.label]?.[lang] || entry.label || "",
+              text: translatedText || entry.text || ""
             };
           });
         });
       });
-
       return;
     }
 
-    /*
-      data.jsが blocks形式の場合
-      ブロック番号と文章番号で対応させる
-    */
     if (Array.isArray(sourceItem.blocks)) {
       targetBlocks.forEach((targetBlock, blockIndex) => {
-        const sourceBlock = sourceItem.blocks[blockIndex];
-        if (!sourceBlock) return;
+        const sourceBlock = sourceItem.blocks[blockIndex] || null;
+        const ja = Array.isArray(targetBlock.ja) ? targetBlock.ja : [];
 
-        const japaneseItems = Array.isArray(targetBlock.ja)
-          ? targetBlock.ja
-          : [];
-
-        ["id", "ne", "my"].forEach(lang => {
-          const sourceForeign = Array.isArray(sourceBlock[lang])
-            ? sourceBlock[lang]
-            : [];
-
-          targetBlock[lang] = japaneseItems.map((entry, entryIndex) => {
+        LANGS.forEach(lang => {
+          const sourceForeign = Array.isArray(sourceBlock?.[lang]) ? sourceBlock[lang] : [];
+          targetBlock[lang] = ja.map((entry, entryIndex) => {
             const translated = sourceForeign[entryIndex];
-
             return {
-              label:
-                translated?.label ||
-                LABELS[entry.label]?.[lang] ||
-                entry.label ||
-                "",
-              text:
-                translated?.text ||
-                entry.text ||
-                ""
+              label: translated?.label || LABELS[entry.label]?.[lang] || entry.label || "",
+              text: translated?.text || entry.text || ""
             };
           });
         });
       });
+      return;
     }
+
+    // 未知の形式でも空表示にしない
+    targetBlocks.forEach(targetBlock => {
+      const ja = Array.isArray(targetBlock.ja) ? targetBlock.ja : [];
+      LANGS.forEach(lang => {
+        targetBlock[lang] = ja.map(entry => ({
+          label: LABELS[entry.label]?.[lang] || entry.label || "",
+          text: entry.text || ""
+        }));
+      });
+    });
   });
 
-  console.log(
-    "教本アプリのインドネシア語・ネパール語・ミャンマー語を反映しました。"
-  );
+  console.log("教本アプリの追加3言語を反映しました（欠落防止版）。");
+})();
+
+/* 追加3言語：説明欄の日本語フォールバックを翻訳で補完 */
+(() => {
+  "use strict";
+  const EXTRA = {"Pは駐車、Rは後退、Nは動力が伝わらない状態、Dは前進です。":{"id":"P untuk parkir, R untuk mundur, N untuk posisi netral tanpa tenaga tersalur, dan D untuk maju.","ne":"P पार्किङका लागि, R पछाडि जानका लागि, N शक्ति नजोडिएको न्यूट्रल अवस्था, र D अगाडि जानका लागि हो।","my":"P သည် ပါကင်၊ R သည် နောက်ဆုတ်၊ N သည် အင်ဂျင်အား မပို့သည့် နျူထရယ်အနေအထား၊ D သည် ရှေ့သို့မောင်းရန် ဖြစ်သည်။"},"駐車中に車が動かないようにする装置です。":{"id":"Perangkat ini mencegah mobil bergerak saat diparkir.","ne":"यो उपकरणले पार्किङ गर्दा गाडी चल्न नदिन्छ।","my":"ကားရပ်ထားစဉ် မရွေ့သွားစေရန် တားပေးသော ကိရိယာဖြစ်သည်။"},"曲がる、進路変更する意思を周囲に知らせます。":{"id":"Gunakan lampu sein untuk memberi tahu orang di sekitar bahwa Anda akan berbelok atau berpindah jalur.","ne":"मोड्ने वा लेन परिवर्तन गर्ने इरादा वरपरका सवारीलाई संकेत दिनुहोस्।","my":"ကွေ့မည် သို့မဟုတ် လမ်းကြောင်းပြောင်းမည်ကို ပတ်ဝန်းကျင်ရှိသူများအား အချက်ပြပါ။"},"暗い時や見えにくい時に、自分が見るため・相手に見せるために使います。":{"id":"Gunakan lampu saat gelap atau jarak pandang buruk, agar Anda dapat melihat dan kendaraan Anda terlihat oleh orang lain.","ne":"अँध्यारो वा दृश्यता कम हुँदा आफूले देख्न र अरूले तपाईंलाई देख्न बत्ती प्रयोग गर्नुहोस्।","my":"အမှောင် သို့မဟုတ် မြင်ကွင်းမကောင်းချိန်တွင် မိမိမြင်ရန်နှင့် အခြားသူများက မိမိကိုမြင်ရန် မီးအသုံးပြုပါ။"},"雨や雪で前が見えにくい時に使います。":{"id":"Gunakan wiper ketika hujan atau salju membuat pandangan ke depan sulit.","ne":"वर्षा वा हिउँले अगाडि देख्न गाह्रो हुँदा वाइपर प्रयोग गर्नुहोस्।","my":"မိုး သို့မဟုတ် နှင်းကြောင့် ရှေ့မမြင်ကောင်းချိန်တွင် ဝိုင်ပါကို အသုံးပြုပါ။"},"速度や警告灯などを確認します。見慣れない表示が出たら指導員に伝えます。":{"id":"Periksa kecepatan dan lampu peringatan. Jika muncul indikator yang tidak Anda kenal, beri tahu instruktur.","ne":"गति र चेतावनी बत्तीहरू जाँच गर्नुहोस्। अपरिचित संकेत देखिएमा प्रशिक्षकलाई भन्नुहोस्।","my":"အမြန်နှုန်းနှင့် သတိပေးမီးများကို စစ်ဆေးပါ။ မမြင်ဖူးသော အချက်ပြတစ်ခု ပေါ်လာပါက နည်းပြကို ပြောပါ။"},"ブレーキをしっかり踏んだまま、チェンジレバーをDに入れ、目で確認します。":{"id":"Tetap tekan rem dengan kuat, pindahkan tuas transmisi ke D, lalu pastikan secara visual.","ne":"ब्रेक मजबुतसँग थिचिराखी गियर लिभर D मा राख्नुहोस् र आँखाले पुष्टि गर्नुहोस्।","my":"ဘရိတ်ကို သေချာနင်းထားပြီး ဂီယာလီဗာကို D သို့ထားကာ မျက်စိဖြင့် အတည်ပြုပါ။"},"ハンドブレーキを完全に戻します。":{"id":"Lepaskan rem parkir sepenuhnya.","ne":"ह्यान्ड ब्रेक पूर्ण रूपमा छोड्नुहोस्।","my":"ဟန်းဘရိတ်ကို အပြည့်အဝ လွှတ်ပါ။"},"ブレーキペダルを少しずつ戻し、車の動きを感じます。":{"id":"Lepaskan pedal rem sedikit demi sedikit dan rasakan gerakan mobil.","ne":"ब्रेक पेडल बिस्तारै छोड्दै गाडीको चाल महसुस गर्नुहोस्।","my":"ဘရိတ်ပက်ဒယ်ကို တဖြည်းဖြည်းလွှတ်ပြီး ကားရွေ့လျားမှုကို ခံစားပါ။"},"右足をブレーキからアクセルペダルへ移します。":{"id":"Pindahkan kaki kanan dari pedal rem ke pedal gas.","ne":"दायाँ खुट्टा ब्रेकबाट एक्सेलेरेटर पेडलमा सार्नुहोस्।","my":"ညာခြေကို ဘရိတ်ပက်ဒယ်မှ အက်စီလာရေတာပက်ဒယ်သို့ ရွှေ့ပါ။"},"アクセルをゆっくり踏み、なめらかに発進します。":{"id":"Tekan pedal gas perlahan dan mulai bergerak dengan halus.","ne":"एक्सेलेरेटर बिस्तारै थिचेर सहज रूपमा चल्न सुरु गर्नुहोस्।","my":"အက်စီလာရေတာကို ဖြည်းဖြည်းနင်းပြီး ချောမွေ့စွာ စတင်မောင်းပါ။"},"止まる場所を早めに確認します。":{"id":"Tentukan tempat berhenti sejak awal.","ne":"रोक्ने स्थान चाँडै पहिचान गर्नुहोस्।","my":"ရပ်မည့်နေရာကို စောစောသတ်မှတ်ပါ။"},"止まる場所に合わせて、まずアクセルペダルを戻します。":{"id":"Sesuaikan dengan titik berhenti dan pertama-tama lepaskan pedal gas.","ne":"रोक्ने स्थानअनुसार पहिले एक्सेलेरेटर छोड्नुहोस्।","my":"ရပ်မည့်နေရာနှင့် ကိုက်ညီအောင် အရင်ဆုံး အက်စီလာရေတာကို လွှတ်ပါ။"},"アクセルからブレーキペダルへ足を移します。":{"id":"Pindahkan kaki dari pedal gas ke pedal rem.","ne":"खुट्टा एक्सेलेरेटरबाट ब्रेक पेडलमा सार्नुहोस्।","my":"ခြေကို အက်စီလာရေတာမှ ဘရိတ်ပက်ဒယ်သို့ ရွှေ့ပါ။"},"ブレーキペダルを徐々に踏み込み、速度を落として停止します。":{"id":"Tekan pedal rem secara bertahap, kurangi kecepatan, lalu berhenti.","ne":"ब्रेक पेडल क्रमशः थिच्दै गति घटाएर रोक्नुहोस्।","my":"ဘရိတ်ပက်ဒယ်ကို တဖြည်းဖြည်းနင်းကာ အရှိန်လျှော့ပြီး ရပ်ပါ။"},"停止したら、ブレーキペダルをしっかり踏んでおきます。":{"id":"Setelah berhenti, tetap tekan pedal rem dengan kuat.","ne":"रोकिएपछि ब्रेक पेडल मजबुतसँग थिचिराख्नुहोस्।","my":"ရပ်ပြီးနောက် ဘရိတ်ပက်ဒယ်ကို သေချာနင်းထားပါ။"},"停止後、ハンドブレーキをいっぱいにかけます。":{"id":"Setelah berhenti, tarik rem parkir sepenuhnya.","ne":"रोकिएपछि ह्यान्ड ब्रेक पूर्ण रूपमा लगाउनुहोस्।","my":"ရပ်ပြီးနောက် ဟန်းဘရိတ်ကို အပြည့်အဝ ဆွဲပါ။"},"チェンジレバーをPに入れ、エンジンを止めます。":{"id":"Pindahkan tuas transmisi ke P lalu matikan mesin.","ne":"गियर लिभर P मा राखेर इन्जिन बन्द गर्नुहोस्।","my":"ဂီယာလီဗာကို P သို့ထားပြီး အင်ဂျင်ကို ပိတ်ပါ။"},"Pとハンドブレーキを確認してから、ブレーキペダルを離します。":{"id":"Pastikan transmisi berada di P dan rem parkir aktif, lalu lepaskan pedal rem.","ne":"P र ह्यान्ड ब्रेक पुष्टि गरेपछि ब्रेक पेडल छोड्नुहोस्।","my":"P နှင့် ဟန်းဘရိတ်ကို အတည်ပြုပြီးနောက် ဘရိတ်ပက်ဒယ်ကို လွှတ်ပါ။"},"速度が変わりそうになったら、アクセルをほんの少し踏む、または少しゆるめます。":{"id":"Jika kecepatan mulai berubah, tekan pedal gas sedikit atau kendurkan sedikit.","ne":"गति बदलिन लागेमा एक्सेलेरेटर थोरै थिच्नुहोस् वा थोरै छोड्नुहोस्।","my":"အမြန်နှုန်း ပြောင်းလဲလာမည်ဆိုပါက အက်စီလာရေတာကို နည်းနည်းနင်း သို့မဟုတ် နည်းနည်းလွှတ်ပါ။"},"ブレーキをぐっと踏むと、車は急に遅くなります。危険時以外は急ブレーキにならないようにします。":{"id":"Jika rem ditekan kuat, mobil akan melambat mendadak. Hindari pengereman mendadak kecuali dalam keadaan darurat.","ne":"ब्रेक कडा थिच्दा गाडी अचानक सुस्त हुन्छ। आपतकालबाहेक अचानक ब्रेक नलगाउनुहोस्।","my":"ဘရိတ်ကို ပြင်းပြင်းနင်းလျှင် ကားသည် ရုတ်တရက်နှေးသွားသည်။ အရေးပေါ်မဟုတ်လျှင် ရုတ်တရက်ဘရိတ်မနင်းပါနှင့်။"},"ブレーキをじわっと踏むと、車はゆるやかに遅くなります。停止やカーブ前の減速に使います。":{"id":"Tekan rem perlahan agar mobil melambat secara halus. Gunakan saat akan berhenti atau sebelum tikungan.","ne":"ब्रेक बिस्तारै थिच्दा गाडी सहज रूपमा सुस्त हुन्छ। रोक्न वा मोडअघि गति घटाउन प्रयोग गर्नुहोस्।","my":"ဘရိတ်ကို ဖြည်းဖြည်းနင်းလျှင် ကားသည် ချောမွေ့စွာ နှေးသွားသည်။ ရပ်ရန် သို့မဟုတ် ကွေ့မတိုင်မီ အရှိန်လျှော့ရန် အသုံးပြုပါ။"},"カーブに近づいたら、まずアクセルを戻して減速の準備をします。":{"id":"Saat mendekati tikungan, pertama-tama lepaskan pedal gas untuk bersiap mengurangi kecepatan.","ne":"मोड नजिकिँदा पहिले एक्सेलेरेटर छोडेर गति घटाउने तयारी गर्नुहोस्।","my":"ကွေ့နားရောက်လာပါက အရင်ဆုံး အက်စီလာရေတာကို လွှတ်ပြီး အရှိန်လျှော့ရန် ပြင်ဆင်ပါ။"},"カーブの手前でブレーキをかけ始め、カーブに入る前に余裕をもって速度を落とします。":{"id":"Mulai mengerem sebelum tikungan dan kurangi kecepatan dengan cukup waktu sebelum masuk tikungan.","ne":"मोडअघि ब्रेक सुरु गरी मोडमा पस्नुअघि पर्याप्त समय राखेर गति घटाउनुहोस्।","my":"ကွေ့မတိုင်မီ ဘရိတ်စနင်းပြီး ကွေ့ထဲမဝင်ခင် အချိန်လုံလောက်စွာဖြင့် အရှိန်လျှော့ပါ။"},"カーブに入る前、約一車長くらい手前までに安全な速度へ落とします。":{"id":"Sebelum masuk tikungan, turunkan kecepatan ke tingkat aman sekitar satu panjang mobil sebelumnya.","ne":"मोडमा पस्नुअघि करिब एक गाडी लम्बाइ अगावै सुरक्षित गतिमा घटाउनुहोस्।","my":"ကွေ့ထဲမဝင်မီ ကားတစ်စီးအလျားခန့် အကွာကတည်းက လုံခြုံသောအရှိန်သို့ လျှော့ပါ။"},"カーブ中は急なアクセルや急ブレーキを避け、一定の速度で通行します。":{"id":"Di dalam tikungan, hindari gas atau rem mendadak dan pertahankan kecepatan tetap.","ne":"मोडमा अचानक एक्सेलेरेटर वा ब्रेक नचलाइ स्थिर गति राख्नुहोस्।","my":"ကွေ့အတွင်း ရုတ်တရက် အက်စီလာရေတာ သို့မဟုတ် ဘရိတ်မသုံးဘဲ အမြန်နှုန်းတည်ငြိမ်စွာ ထိန်းပါ။"},"カーブを抜けて車がまっすぐになり始めたら、少しずつアクセルを踏んで加速します。":{"id":"Setelah keluar dari tikungan dan mobil mulai lurus, tekan pedal gas sedikit demi sedikit untuk berakselerasi.","ne":"मोडबाट निस्केर गाडी सीधा हुन थालेपछि एक्सेलेरेटर बिस्तारै थिचेर गति बढाउनुहोस्।","my":"ကွေ့မှထွက်ပြီး ကားတည့်လာသည်နှင့် အက်စီလာရေတာကို တဖြည်းဖြည်းနင်းကာ အရှိန်မြှင့်ပါ။"},"走行中にアクセルを戻すと、エンジンが抵抗になり、ブレーキがかかったように車がゆっくりになります。":{"id":"Saat pedal gas dilepas ketika berjalan, tahanan mesin membantu memperlambat mobil seperti pengereman ringan.","ne":"चलिरहेको बेला एक्सेलेरेटर छोड्दा इन्जिनको प्रतिरोधले हल्का ब्रेकजस्तै गाडीलाई सुस्त बनाउँछ।","my":"မောင်းနေစဉ် အက်စီလာရေတာကို လွှတ်လိုက်လျှင် အင်ဂျင်တားဆီးအားကြောင့် ဘရိတ်နည်းနည်းနင်းသကဲ့သို့ ကားနှေးသွားသည်။"},"発進後は前方の状況を確認し、交通の流れに合う速度までなめらかに加速します。":{"id":"Setelah mulai bergerak, periksa keadaan di depan dan percepat dengan halus hingga sesuai arus lalu lintas.","ne":"चल्न सुरु गरेपछि अगाडिको अवस्था जाँच गरी ट्राफिकको प्रवाहअनुसार सहज रूपमा गति बढाउनुहोस्।","my":"စတင်မောင်းပြီးနောက် ရှေ့အခြေအနေကို စစ်ဆေးကာ ယာဉ်ကြောစီးဆင်းမှုနှင့် ကိုက်ညီသည့်အရှိန်အထိ ချောမွေ့စွာ အရှိန်မြှင့်ပါ။"},"発進後は道路の左側に沿った安全な位置を保ち、ふらつかないように進みます。":{"id":"Setelah mulai bergerak, pertahankan posisi aman di sisi kiri jalan dan bergerak tanpa oleng.","ne":"चल्न सुरु गरेपछि सडकको बायाँतर्फ सुरक्षित स्थानमा रही नडगमगाई अगाडि बढ्नुहोस्।","my":"စတင်မောင်းပြီးနောက် လမ်းဘယ်ဘက်ရှိ လုံခြုံသောနေရာကို ထိန်းပြီး မလှုပ်ယမ်းဘဲ ဆက်မောင်းပါ။"},"停止直前にブレーキを少しゆるめ、最後に静かに踏み込んでショックを小さくします。":{"id":"Sesaat sebelum berhenti, kendurkan rem sedikit lalu tekan perlahan di akhir agar hentakan kecil.","ne":"रोक्नुअघि ब्रेक अलि छोडेर अन्त्यमा बिस्तारै थिच्नुहोस् ताकि झट्का कम होस्।","my":"ရပ်ခါနီးတွင် ဘရိတ်ကို နည်းနည်းလွှတ်ပြီး နောက်ဆုံးမှာ ဖြည်းဖြည်းနင်းကာ လှုပ်ခတ်မှုကို လျှော့ပါ။"},"完全に停止したらブレーキを保持し、必要に応じて駐車ブレーキやチェンジレバーを操作します。":{"id":"Setelah berhenti sepenuhnya, tetap tahan rem dan gunakan rem parkir atau tuas transmisi bila perlu.","ne":"पूर्ण रूपमा रोकिएपछि ब्रेक थामिराख्नुहोस् र आवश्यक परे ह्यान्ड ब्रेक वा गियर लिभर चलाउनुहोस्।","my":"အပြည့်အဝရပ်ပြီးနောက် ဘရိတ်ကို ထိန်းထားကာ လိုအပ်ပါက ဟန်းဘရိတ် သို့မဟုတ် ဂီယာလီဗာကို အသုံးပြုပါ။"},"カーブの出口が見えたら、車の向きに合わせてハンドルを少しずつ戻します。":{"id":"Saat pintu keluar tikungan terlihat, kembalikan setir sedikit demi sedikit sesuai arah mobil.","ne":"मोडको निकास देखिएपछि गाडीको दिशाअनुसार स्टेयरिङ बिस्तारै सीधा फर्काउनुहोस्।","my":"ကွေ့ထွက်ပေါက်မြင်လာပါက ကားဦးတည်ချက်နှင့် ကိုက်ညီအောင် စတီယာရင်ကို တဖြည်းဖြည်း ပြန်တည့်ပါ။"},"曲がり角では後輪が前輪より内側を通るため、縁石や障害物との間隔に注意します。":{"id":"Saat berbelok, roda belakang melewati sisi yang lebih dalam daripada roda depan, jadi perhatikan jarak dari trotoar dan rintangan.","ne":"मोड्दा पछाडिका पाङ्ग्रा अगाडिका भन्दा भित्रबाट जाने भएकाले कर्ब र अवरोधसँगको दूरीमा ध्यान दिनुहोस्।","my":"ကွေ့ရာတွင် နောက်ဘီးသည် ရှေ့ဘီးထက် အတွင်းဘက်ပိုဖြတ်သန်းသောကြောင့် လမ်းဘေးခုံနှင့် အတားအဆီးအကွာအဝေးကို သတိထားပါ။"},"坂道発進では後方の安全を確認し、車が後退しないようにアクセルとブレーキを調整して発進します。":{"id":"Saat mulai di tanjakan, periksa belakang dan atur gas serta rem agar mobil tidak mundur.","ne":"उकालोमा सुरु गर्दा पछाडिको सुरक्षा जाँच गरी गाडी पछाडि नसरोस् भनेर एक्सेलेरेटर र ब्रेक मिलाउनुहोस्।","my":"တောင်တက်လမ်းတွင် စတင်မောင်းရာ၌ နောက်ဘက်လုံခြုံရေးကို စစ်ဆေးပြီး ကားနောက်မဆုတ်စေရန် အက်စီလာရေတာနှင့် ဘရိတ်ကို ချိန်ညှိပါ။"},"停止位置に近づいたら速度をさらに落とし、ブレーキを踏んで確実に停止します。":{"id":"Saat mendekati titik berhenti, kurangi kecepatan lebih lanjut lalu tekan rem hingga berhenti pasti.","ne":"रोक्ने स्थान नजिकिँदा गति अझ घटाएर ब्रेक थिची निश्चित रूपमा रोक्नुहोस्।","my":"ရပ်မည့်နေရာနားရောက်ပါက အရှိန်ထပ်လျှော့ပြီး ဘရိတ်နင်းကာ သေချာရပ်ပါ။"},"後輪が狭路を完全に抜けるまで微速で進み、ハンドルをゆっくり戻します。":{"id":"Bergerak sangat pelan sampai roda belakang benar-benar keluar dari jalan sempit, lalu kembalikan setir perlahan.","ne":"पछाडिका पाङ्ग्रा साँघुरो बाटोबाट पूर्ण रूपमा निस्किएसम्म अत्यन्त बिस्तारै चल्नुहोस् र स्टेयरिङ बिस्तारै सीधा गर्नुहोस्।","my":"နောက်ဘီးများ ကျဉ်းသောလမ်းမှ အပြည့်အဝထွက်သည်အထိ အလွန်ဖြည်းဖြည်းမောင်းပြီး စတီယာရင်ကို ဖြည်းဖြည်းပြန်တည့်ပါ။"},"進路変更が終わったら、車体を道路に沿ってまっすぐにし、方向指示器を戻します。":{"id":"Setelah pindah jalur selesai, luruskan mobil mengikuti jalan dan matikan lampu sein.","ne":"लेन परिवर्तन सकेपछि गाडीलाई सडकसँग सीधा पारेर संकेत बत्ती बन्द गर्नुहोस्।","my":"လမ်းကြောင်းပြောင်းပြီးလျှင် ကားကို လမ်းနှင့်တည့်အောင် ပြန်တည့်ကာ အချက်ပြမီးကို ပိတ်ပါ။"},"障害物を完全に通過したことを確認し、左後方の安全を確認してから元の進路へ戻ります。":{"id":"Pastikan rintangan sudah terlewati sepenuhnya, periksa keamanan kiri belakang, lalu kembali ke jalur semula.","ne":"अवरोध पूर्ण रूपमा पार गरेको पुष्टि गरी बायाँ पछाडिको सुरक्षा जाँच गरेर मूल लेनमा फर्कनुहोस्।","my":"အတားအဆီးကို အပြည့်အဝကျော်ခဲ့ကြောင်း အတည်ပြုပြီး ဘယ်နောက်ဘက်လုံခြုံရေးကို စစ်ဆေးကာ မူလလမ်းကြောင်းသို့ ပြန်ဝင်ပါ။"},"標識・標示を確認したら、早めに減速、合図、車線選択など必要な操作を行います。":{"id":"Setelah melihat rambu dan marka, lakukan tindakan yang diperlukan lebih awal seperti mengurangi kecepatan, memberi sinyal, dan memilih jalur.","ne":"चिन्ह र सडक संकेत देखेपछि समयमै गति घटाउने, संकेत दिने र लेन छनोट गर्ने जस्ता आवश्यक काम गर्नुहोस्।","my":"ဆိုင်းဘုတ်နှင့် လမ်းအမှတ်အသားများကို စစ်ဆေးပြီးလျှင် အရှိန်လျှော့ခြင်း၊ အချက်ပြခြင်း၊ လမ်းကြောရွေးခြင်းတို့ကို စောစောလုပ်ပါ။"},"信号が青に変わっても、左右、横断歩道、交差点内を確認してから発進します。":{"id":"Walaupun lampu berubah hijau, periksa kiri-kanan, penyeberangan, dan area persimpangan sebelum bergerak.","ne":"बत्ती हरियो भए पनि बायाँ-दायाँ, पैदलमार्ग र चोकभित्र जाँच गरेर मात्र चल्नुहोस्।","my":"မီးစိမ်းပြောင်းသော်လည်း ဘယ်ညာ၊ လူကူးမျဉ်းနှင့် လမ်းဆုံအတွင်းကို စစ်ဆေးပြီးမှ စတင်မောင်းပါ။"},"横断歩道に歩行者や自転車がいる、または渡ろうとしているときは停止して進路を譲ります。":{"id":"Jika ada pejalan kaki atau pesepeda di penyeberangan atau hendak menyeberang, berhenti dan beri jalan.","ne":"जेब्रामा पैदलयात्री वा साइकलयात्री छन् वा पार गर्न लागेका छन् भने रोकिएर बाटो दिनुहोस्।","my":"လူကူးမျဉ်းပေါ်တွင် လမ်းလျှောက်သူ သို့မဟုတ် စက်ဘီးစီးသူရှိပါက၊ သို့မဟုတ် ဖြတ်ကူးမည့်အခြေအနေရှိပါက ရပ်ပြီး လမ်းပေးပါ။"},"交差点を通過したら、前方の交通状況を確認し、道路に合った速度と位置へ戻します。":{"id":"Setelah melewati persimpangan, periksa lalu lintas di depan dan kembali ke kecepatan serta posisi yang sesuai jalan.","ne":"चोक पार गरेपछि अगाडिको ट्राफिक जाँच गरी सडकअनुसार गति र स्थानमा फर्कनुहोस्।","my":"လမ်းဆုံကျော်ပြီးနောက် ရှေ့ယာဉ်ကြောအခြေအနေကို စစ်ဆေးကာ လမ်းနှင့်ကိုက်ညီသည့် အမြန်နှုန်းနှင့် နေရာသို့ ပြန်ပါ။"},"交差点の左端に沿って小さく回り、曲がった先の左側車線へ入ります。":{"id":"Belok kecil mengikuti sisi kiri persimpangan dan masuk ke lajur kiri setelah berbelok.","ne":"चोकको बायाँ किनारा पछ्याउँदै सानो घुमेर मोडेपछि बायाँ लेनमा प्रवेश गर्नुहोस्।","my":"လမ်းဆုံဘယ်အစွန်းကို ကပ်ကာ သေးသေးကွေ့ပြီး ကွေ့ပြီးနောက် ဘယ်လမ်းကြောထဲ ဝင်ပါ။"},"左折後は車体を道路に沿ってまっすぐにし、前方と後方を確認して速度を整えます。":{"id":"Setelah belok kiri, luruskan mobil mengikuti jalan, periksa depan dan belakang, lalu sesuaikan kecepatan.","ne":"बायाँ मोडेपछि गाडीलाई सडकसँग सीधा पारेर अगाडि र पछाडि जाँच गरी गति मिलाउनुहोस्।","my":"ဘယ်ကွေ့ပြီးနောက် ကားကို လမ်းနှင့်တည့်အောင် ပြန်တည့်ကာ ရှေ့နောက်ကို စစ်ဆေးပြီး အရှိန်ညှိပါ။"},"対向車が途切れても、右折先の横断歩道に歩行者や自転車がいないか確認します。":{"id":"Walaupun lalu lintas dari arah berlawanan sudah terputus, periksa apakah ada pejalan kaki atau pesepeda di penyeberangan tujuan belok kanan.","ne":"विपरीत दिशाका गाडी रोकिए पनि दायाँ मोड्ने ठाउँको जेब्रामा पैदलयात्री वा साइकलयात्री छन् कि जाँच गर्नुहोस्।","my":"မျက်နှာချင်းဆိုင်ယာဉ်ကြော ပြတ်သွားသော်လည်း ညာကွေ့သည့်ဘက်ရှိ လူကူးမျဉ်းတွင် လမ်းလျှောက်သူ သို့မဟုတ် စက်ဘီးစီးသူရှိမရှိ စစ်ဆေးပါ။"},"右折後は車体を道路に沿ってまっすぐにし、前方と後方を確認して速度を整えます。":{"id":"Setelah belok kanan, luruskan mobil mengikuti jalan, periksa depan dan belakang, lalu sesuaikan kecepatan.","ne":"दायाँ मोडेपछि गाडीलाई सडकसँग सीधा पारेर अगाडि र पछाडि जाँच गरी गति मिलाउनुहोस्।","my":"ညာကွေ့ပြီးနောက် ကားကို လမ်းနှင့်တည့်အောင် ပြန်တည့်ကာ ရှေ့နောက်ကို စစ်ဆေးပြီး အရှိန်ညှိပါ။"},"左右の安全を十分確認し、車や人が来ていないことを確かめてから進入します。":{"id":"Periksa keamanan kiri dan kanan dengan baik, pastikan tidak ada kendaraan atau orang yang datang, lalu masuk.","ne":"बायाँ र दायाँ राम्रोसँग जाँच गरी कुनै गाडी वा मानिस नआएको पुष्टि गरेपछि प्रवेश गर्नुहोस्।","my":"ဘယ်ညာလုံခြုံရေးကို သေချာစစ်ဆေးပြီး ကား သို့မဟုတ် လူမလာကြောင်း အတည်ပြုပြီးမှ ဝင်ပါ။"},"交差点を通過したら、前方の状況を確認し、道路に合った速度へ戻します。":{"id":"Setelah melewati persimpangan, periksa keadaan di depan dan kembali ke kecepatan yang sesuai jalan.","ne":"चोक पार गरेपछि अगाडिको अवस्था जाँच गरी सडकअनुसारको गतिमा फर्कनुहोस्।","my":"လမ်းဆုံကျော်ပြီးနောက် ရှေ့အခြေအနေကို စစ်ဆေးကာ လမ်းနှင့်ကိုက်ညီသည့် အမြန်နှုန်းသို့ ပြန်ပါ။"},"警報機が鳴っている、または遮断機が下り始めている場合は進入してはいけません。":{"id":"Jangan masuk ke perlintasan jika alarm berbunyi atau palang mulai turun.","ne":"चेतावनी घण्टी बजिरहेको वा बार झर्न थालेको छ भने रेलवे क्रसिङमा प्रवेश नगर्नुहोस्।","my":"သတိပေးခေါင်းလောင်းမြည်နေပါက သို့မဟုတ် တားတန်းကျလာနေပါက မီးရထားလမ်းဖြတ်ကို မဝင်ပါနှင့်။"},"踏切内で停止した場合は、まず車外へ避難し、非常ボタンや発炎筒で列車へ知らせます。":{"id":"Jika kendaraan berhenti di perlintasan, pertama keluar dan mengungsi, lalu beri tahu kereta dengan tombol darurat atau suar.","ne":"रेलवे क्रसिङभित्र रोकिएमा पहिले गाडीबाट बाहिर निस्कनुहोस् र आपतकालीन बटन वा फ्लेयरले रेललाई चेतावनी दिनुहोस्।","my":"မီးရထားလမ်းဖြတ်အတွင်း ကားရပ်သွားပါက အရင်ဆုံး ကားမှထွက်ကာ လုံခြုံရာသို့ ရွှေ့ပြီး အရေးပေါ်ခလုတ် သို့မဟုတ် မီးတောက်တံဖြင့် ရထားကို သတိပေးပါ။"},"後退では姿勢が変わるため、アクセルとブレーキの踏み間違いに特に注意します。上り坂で少しだけ進むときや、くぼみから動かすときも同じです。":{"id":"Saat mundur, posisi tubuh berubah, jadi berhati-hatilah agar tidak salah menginjak gas dan rem. Hal yang sama berlaku saat bergerak sedikit di tanjakan atau keluar dari cekungan.","ne":"पछाडि जाँदा शरीरको मुद्रा बदलिने भएकाले एक्सेलेरेटर र ब्रेक गलत नथिच्न विशेष ध्यान दिनुहोस्। उकालोमा अलिकति चल्दा वा खाल्डोबाट निकाल्दा पनि यही लागू हुन्छ।","my":"နောက်ဆုတ်ရာတွင် ကိုယ်ဟန်အနေအထား ပြောင်းသဖြင့် အက်စီလာရေတာနှင့် ဘရိတ်ကို မှားနင်းမိခြင်းကို အထူးသတိထားပါ။ တောင်တက်လမ်းတွင် နည်းနည်းရွှေ့ရာ သို့မဟုတ် ချိုင့်မှထွက်ရာတွင်လည်း အတူတူဖြစ်သည်။"},"第2段階の路上練習へ進めるかどうかを確認するため、指導員同乗のもとで基本的な走行能力を判定します。":{"id":"Untuk menilai apakah Anda siap melanjutkan ke latihan jalan tahap 2, kemampuan dasar mengemudi dinilai dengan instruktur di dalam kendaraan.","ne":"दोस्रो चरणको सडक अभ्यासमा जान योग्य हुनुहुन्छ कि छैन भनेर प्रशिक्षकसँगै आधारभूत ड्राइभिङ क्षमता मूल्याङ्कन गरिन्छ।","my":"ဒုတိယအဆင့် လမ်းပေါ်လေ့ကျင့်မှုသို့ ဆက်သွားနိုင်မနိုင် စစ်ဆေးရန် နည်းပြနှင့်အတူ အခြေခံမောင်းနှင်နိုင်စွမ်းကို အကဲဖြတ်သည်။"},"検定は乗車から下車までを採点し、減点方式で行われます。合格は100点満点中70点以上です。":{"id":"Ujian dinilai dari saat naik hingga turun dari mobil dengan sistem pengurangan nilai. Lulus jika mendapat 70 atau lebih dari 100 poin.","ne":"परीक्षा गाडी चढेदेखि ओर्लिएसम्म अंक कटौती प्रणालीमा मूल्याङ्कन हुन्छ। 100 मध्ये 70 वा बढी अंक भए उत्तीर्ण हुन्छ।","my":"စာမေးပွဲကို ကားပေါ်တက်ချိန်မှ ဆင်းချိန်အထိ အမှတ်လျှော့စနစ်ဖြင့် အကဲဖြတ်သည်။ 100 မှတ်အနက် 70 မှတ်နှင့်အထက်ရပါက အောင်မြင်သည်။"},"他の交通に迷惑や危険を与えないよう、譲り合いの気持ちを持って判断します。":{"id":"Ambil keputusan dengan sikap saling memberi jalan agar tidak mengganggu atau membahayakan pengguna jalan lain.","ne":"अरू ट्राफिकलाई असुविधा वा खतरा नहोस् भनेर आपसी सहयोग र बाटो दिने भावनाले निर्णय गर्नुहोस्।","my":"အခြားယာဉ်ကြောကို အနှောင့်အယှက် သို့မဟုတ် အန္တရာယ်မဖြစ်စေရန် အပြန်အလှန်လမ်းပေးသည့် စိတ်ဖြင့် ဆုံးဖြတ်ပါ။"},"ウインドウウォッシャー、ワイパー、ブレーキペダル、駐車ブレーキ、エンジンの状態を確認します。":{"id":"Periksa washer kaca, wiper, pedal rem, rem parkir, dan kondisi mesin.","ne":"विन्डो वाशर, वाइपर, ब्रेक पेडल, पार्किङ ब्रेक र इन्जिनको अवस्था जाँच गर्नुहोस्।","my":"မှန်ဆေးရည်စနစ်၊ ဝိုင်ပါ၊ ဘရိတ်ပက်ဒယ်၊ ပါကင်ဘရိတ်နှင့် အင်ဂျင်အခြေအနေကို စစ်ဆေးပါ။"},"ブレーキ液、バッテリー液、エンジンオイル、冷却水、ウォッシャー液の量を確認します。":{"id":"Periksa jumlah minyak rem, cairan baterai, oli mesin, cairan pendingin, dan cairan washer.","ne":"ब्रेक फ्लुइड, ब्याट्री फ्लुइड, इन्जिन तेल, कुलन्ट र वाशर फ्लुइडको मात्रा जाँच गर्नुहोस्।","my":"ဘရိတ်အရည်၊ ဘက်ထရီအရည်၊ အင်ဂျင်ဆီ၊ အအေးပေးရည်နှင့် မှန်ဆေးရည်ပမာဏကို စစ်ဆေးပါ။"},"前照灯、車幅灯、方向指示器、尾灯、制動灯、後退灯、番号灯の点灯と汚れを確認します。":{"id":"Periksa apakah lampu depan, lampu posisi, sein, lampu belakang, lampu rem, lampu mundur, dan lampu pelat nomor menyala serta tidak kotor.","ne":"हेडलाइट, पोजिसन लाइट, सिग्नल, टेल लाइट, ब्रेक लाइट, रिभर्स लाइट र नम्बर प्लेट लाइट बल्छ कि र सफा छन् कि जाँच गर्नुहोस्।","my":"ရှေ့မီး၊ နေရာပြမီး၊ အချက်ပြမီး၊ နောက်မီး၊ ဘရိတ်မီး၊ နောက်ဆုတ်မီးနှင့် နံပါတ်ပြားမီးတို့ လင်းမလင်းနှင့် ညစ်ပတ်မှုရှိမရှိ စစ်ဆေးပါ။"},"タイヤの空気圧、みぞの深さ、きれつ、損傷、異常な摩耗を確認します。":{"id":"Periksa tekanan angin ban, kedalaman alur, retak, kerusakan, dan keausan tidak normal.","ne":"टायरको हावाको चाप, ट्रेडको गहिराइ, चिरा, क्षति र असामान्य घिसावट जाँच गर्नुहोस्।","my":"တာယာလေဖိအား၊ အကြမ်းလိုင်းအနက်၊ အက်ကွဲမှု၊ ပျက်စီးမှုနှင့် ပုံမှန်မဟုတ်သော ပွန်းစားမှုကို စစ်ဆေးပါ။"},"運転免許証、車検証、自賠責保険証明書、停止表示器材、発炎筒、懐中電灯、救急用具を確認します。":{"id":"Pastikan SIM, dokumen pemeriksaan kendaraan, bukti asuransi wajib, alat tanda berhenti, suar, senter, dan perlengkapan P3K tersedia.","ne":"ड्राइभिङ लाइसेन्स, सवारी परीक्षण प्रमाणपत्र, अनिवार्य बीमा प्रमाणपत्र, स्टप संकेत उपकरण, फ्लेयर, टर्च र प्राथमिक उपचार सामग्री जाँच गर्नुहोस्।","my":"ယာဉ်မောင်းလိုင်စင်၊ ယာဉ်စစ်ဆေးလက်မှတ်၊ မဖြစ်မနေအာမခံလက်မှတ်၊ ရပ်တန့်အချက်ပြကိရိယာ၊ မီးတောက်တံ၊ ဓာတ်မီးနှင့် ရှေးဦးသူနာပြုပစ္စည်းများကို စစ်ဆေးပါ။"},"路面状態が良い場合、時速30～60キロでは『速度の数字から15を引いた距離』を目安にします。":{"id":"Jika kondisi jalan baik, pada 30–60 km/jam gunakan jarak kira-kira sebesar angka kecepatan dikurangi 15 meter.","ne":"सडक राम्रो हुँदा 30–60 किमी/घन्टामा गति अंकबाट 15 घटाएको मिटरलाई अनुमानित दूरी मान्नुहोस्।","my":"လမ်းအခြေအနေကောင်းပါက တစ်နာရီ 30–60 ကီလိုမီတာတွင် အမြန်နှုန်းနံပါတ်မှ 15 နုတ်ထားသည့် မီတာအကွာကို ခန့်မှန်းအသုံးပြုပါ။"},"前車が目印を通過してから、自車が同じ目印へ到達するまで2～3秒を目安にします。":{"id":"Gunakan patokan 2–3 detik dari saat kendaraan depan melewati suatu titik sampai kendaraan Anda mencapai titik yang sama.","ne":"अगाडिको गाडीले कुनै चिन्ह पार गरेपछि तपाईंको गाडी त्यही चिन्हमा पुग्न 2–3 सेकेन्ड लाग्ने दूरी राख्नुहोस्।","my":"ရှေ့ကားက အမှတ်တစ်ခုကို ကျော်ပြီး မိမိကား အဲဒီအမှတ်သို့ ရောက်ရန် 2–3 စက္ကန့်ခန့် အကွာထားပါ။"},"車間距離が短いと、前車が大型車の場合に前方が見えにくくなり、必要な情報を得られません。":{"id":"Jika jarak terlalu dekat, terutama di belakang kendaraan besar, pandangan ke depan terhalang dan informasi penting sulit diperoleh.","ne":"दूरी कम हुँदा विशेष गरी ठूलो गाडी पछाडि अगाडि देख्न गाह्रो हुन्छ र आवश्यक जानकारी पाउन सकिँदैन।","my":"ကားအကွာအဝေးတိုလွန်းပြီး ရှေ့ကားကြီးပါက ရှေ့မြင်ကွင်းပိတ်သွား၍ လိုအပ်သောအချက်အလက်ကို မရနိုင်ပါ။"},"多車線道路では、前方の障害物や交通状況を早めに確認し、必要な通行位置を選びます。":{"id":"Di jalan banyak lajur, periksa rintangan dan kondisi lalu lintas di depan sejak awal lalu pilih posisi lajur yang diperlukan.","ne":"बहु-लेन सडकमा अगाडिका अवरोध र ट्राफिक अवस्था चाँडै जाँच गरी उपयुक्त लेन रोज्नुहोस्।","my":"လမ်းကြောများသောလမ်းတွင် ရှေ့အတားအဆီးနှင့် ယာဉ်ကြောအခြေအနေကို စောစောစစ်ဆေးပြီး လိုအပ်သောလမ်းကြောနေရာကို ရွေးပါ။"},"安全を確認したら、ハンドルを少しずつ操作し、滑らかに進路を変えます。":{"id":"Setelah memastikan aman, gerakkan setir sedikit demi sedikit dan pindah jalur dengan halus.","ne":"सुरक्षा पुष्टि गरेपछि स्टेयरिङ बिस्तारै चलाएर सहज रूपमा लेन परिवर्तन गर्नुहोस्।","my":"လုံခြုံကြောင်း အတည်ပြုပြီးနောက် စတီယာရင်ကို နည်းနည်းစီလှည့်ကာ ချောမွေ့စွာ လမ်းကြောင်းပြောင်းပါ။"},"車線、停止線、横断歩道、進行方向別通行区分などの道路標示に従います。":{"id":"Patuhi marka jalan seperti garis lajur, garis berhenti, penyeberangan, dan pembagian lajur menurut arah.","ne":"लेन रेखा, स्टप लाइन, जेब्रा र दिशाअनुसारको लेन विभाजन जस्ता सडक चिन्हहरू पालना गर्नुहोस्।","my":"လမ်းကြောမျဉ်း၊ ရပ်မျဉ်း၊ လူကူးမျဉ်းနှင့် ဦးတည်ရာအလိုက် လမ်းကြောခွဲခြားချက်တို့ကို လိုက်နာပါ။"},"前車が右折を始めても、対向車の妨げにならない位置で待ちます。":{"id":"Walaupun kendaraan depan mulai belok kanan, tunggu di posisi yang tidak menghalangi kendaraan dari arah berlawanan.","ne":"अगाडिको गाडी दायाँ मोड्न थाले पनि विपरीत दिशाको ट्राफिकलाई नरोकिने स्थानमा पर्खनुहोस्।","my":"ရှေ့ကား ညာကွေ့စတင်သော်လည်း မျက်နှာချင်းဆိုင်ယာဉ်များကို မတားဆီးသည့်နေရာတွင် စောင့်ပါ။"},"二輪車は小さく見え、距離や速度を判断しにくいため、無理に右折しません。":{"id":"Sepeda motor terlihat kecil sehingga jarak dan kecepatannya sulit dinilai; jangan memaksakan belok kanan.","ne":"दुईपाङ्ग्रे सवारी सानो देखिने भएकाले दूरी र गति आँकलन गर्न गाह्रो हुन्छ; जबरजस्ती दायाँ न मोड्नुहोस्।","my":"မော်တော်ဆိုင်ကယ်များ သေးသေးမြင်ရသဖြင့် အကွာအဝေးနှင့် အမြန်နှုန်း ခန့်မှန်းရခက်သည်။ အတင်းညာမကွေ့ပါနှင့်။"},"対向車が右折にかかる時間を知り、対向車の流れの切れ目を早めに探します。":{"id":"Pahami waktu yang dibutuhkan kendaraan dari arah berlawanan untuk berbelok kanan dan cari celah arus lalu lintas lebih awal.","ne":"विपरीत दिशाको गाडीलाई दायाँ मोड्न लाग्ने समय बुझेर ट्राफिकको खाली मौका चाँडै खोज्नुहोस्।","my":"မျက်နှာချင်းဆိုင်ကား ညာကွေ့ရန် လိုသည့်အချိန်ကို ခန့်မှန်းပြီး ယာဉ်ကြောပြတ်ချိန်ကို စောစောရှာပါ။"},"右折を始める前に、進行方向の歩行者や自転車の有無を確認します。":{"id":"Sebelum mulai belok kanan, periksa apakah ada pejalan kaki atau pesepeda di arah tujuan.","ne":"दायाँ मोड्नुअघि जाने दिशामा पैदलयात्री वा साइकलयात्री छन् कि जाँच गर्नुहोस्।","my":"ညာမကွေ့မီ သွားမည့်ဘက်တွင် လမ်းလျှောက်သူ သို့မဟုတ် စက်ဘီးစီးသူရှိမရှိ စစ်ဆေးပါ။"},"カーブミラーの情報は参考程度とし、必ず自分の目で左右を確認します。":{"id":"Gunakan informasi dari cermin tikungan hanya sebagai referensi dan selalu periksa kiri-kanan dengan mata sendiri.","ne":"कर्भ मिररको जानकारीलाई सहायक मात्र मान्नुहोस् र सधैं आफ्नै आँखाले बायाँ-दायाँ जाँच गर्नुहोस्।","my":"ကွေ့မှန်အချက်အလက်ကို အကူအညီအဖြစ်သာ သုံးပြီး ဘယ်ညာကို မိမိမျက်စိဖြင့် မဖြစ်မနေ စစ်ဆေးပါ။"},"右側から左折してくる車がいても、その陰から別の車や二輪車が来るかもしれません。":{"id":"Walaupun ada mobil dari kanan yang berbelok kiri, kendaraan lain atau sepeda motor mungkin muncul dari balik mobil tersebut.","ne":"दायाँबाट बायाँ मोड्ने गाडी भए पनि त्यसको पछाडिबाट अर्को गाडी वा दुईपाङ्ग्रे आउन सक्छ।","my":"ညာဘက်မှ ဘယ်ကွေ့လာသောကားရှိသော်လည်း အဲဒီကားနောက်ကွယ်မှ အခြားကား သို့မဟုတ် မော်တော်ဆိုင်ကယ် ထွက်လာနိုင်သည်။"},"渋滞時は車間距離を取り、前車だけでなく先の流れも見ます。":{"id":"Saat macet, jaga jarak dan lihat bukan hanya kendaraan di depan tetapi juga arus lebih jauh ke depan.","ne":"जाममा दूरी राखेर अगाडिको गाडी मात्र होइन, अझ अगाडिको ट्राफिक प्रवाह पनि हेर्नुहोस्।","my":"ယာဉ်ကြပ်ချိန်တွင် ကားအကွာအဝေးထားပြီး ရှေ့ကားတစ်စီးတည်းမဟုတ်ဘဲ အရှေ့ဘက် ယာဉ်ကြောစီးဆင်းမှုကိုပါ ကြည့်ပါ။"},"緊急自動車が接近したら、音と方向を確認し、状況に応じて進路を譲ります。":{"id":"Jika kendaraan darurat mendekat, pastikan suara dan arahnya lalu beri jalan sesuai keadaan.","ne":"आपतकालीन सवारी नजिकिँदा आवाज र दिशा पुष्टि गरी अवस्थाअनुसार बाटो दिनुहोस्।","my":"အရေးပေါ်ယာဉ် နီးလာပါက အသံနှင့် ဦးတည်ချက်ကို စစ်ဆေးပြီး အခြေအနေအလိုက် လမ်းပေးပါ။"},"歩道や路側帯がない道路では道路の左端、歩道や路側帯がある道路では車道の左端に止めます。":{"id":"Di jalan tanpa trotoar atau bahu, berhenti di tepi kiri jalan; jika ada trotoar atau bahu, berhenti di tepi kiri jalur kendaraan.","ne":"फुटपाथ वा साइड स्ट्रिप नभएको सडकमा सडकको बायाँ किनारमा, भएको सडकमा सवारी भागको बायाँ किनारमा रोक्नुहोस्।","my":"လူသွားစင်္ကြံ သို့မဟုတ် လမ်းဘေးဇုန်မရှိသောလမ်းတွင် လမ်းဘယ်အစွန်း၌ ရပ်ပါ။ ရှိပါက ယာဉ်မောင်းလမ်း၏ ဘယ်အစွန်း၌ ရပ်ပါ။"},"路側帯の幅が0.75メートルを超える場合は、左側に0.75メートル以上の余地を残して止めます。":{"id":"Jika bahu jalan lebih lebar dari 0,75 m, sisakan ruang sedikitnya 0,75 m di sisi kiri saat berhenti.","ne":"साइड स्ट्रिप 0.75 मिटरभन्दा फराकिलो भए बायाँतर्फ कम्तीमा 0.75 मिटर खाली ठाउँ छोडेर रोक्नुहोस्।","my":"လမ်းဘေးဇုန်အကျယ် 0.75 မီတာထက်ပိုပါက ဘယ်ဘက်တွင် အနည်းဆုံး 0.75 မီတာ အလွတ်ထားပြီး ရပ်ပါ။"},"後方確認後に右へ回し、右後輪を角へ近づけながらゆっくり後退します。":{"id":"Setelah memeriksa belakang, putar ke kanan dan mundur perlahan sambil mendekatkan roda belakang kanan ke sudut.","ne":"पछाडि जाँच गरेपछि दायाँ घुमाई दायाँ पछाडिको पाङ्ग्रा कुनातर्फ नजिक्याउँदै बिस्तारै पछाडि जानुहोस्।","my":"နောက်ဘက်ကို စစ်ဆေးပြီး ညာဘက်လှည့်ကာ ညာနောက်ဘီးကို ထောင့်နားသို့ ကပ်စေ하면서 ဖြည်းဖြည်းနောက်ဆုတ်ပါ။"},"後方確認後に左へ回し、左後輪を角へ近づけながらゆっくり後退します。":{"id":"Setelah memeriksa belakang, putar ke kiri dan mundur perlahan sambil mendekatkan roda belakang kiri ke sudut.","ne":"पछाडि जाँच गरेपछि बायाँ घुमाई बायाँ पछाडिको पाङ्ग्रा कुनातर्फ नजिक्याउँदै बिस्तारै पछाडि जानुहोस्।","my":"နောက်ဘက်ကို စစ်ဆေးပြီး ဘယ်ဘက်လှည့်ကာ ဘယ်နောက်ဘီးကို ထောင့်နားသို့ ကပ်စေပြီး ဖြည်းဖြည်းနောက်ဆုတ်ပါ။"},"前後の限られた場所で、前進や後退をしながら車を側方へ移動させます。":{"id":"Di ruang terbatas depan-belakang, gerakkan mobil ke samping dengan maju dan mundur secara bergantian.","ne":"अगाडि-पछाडि सीमित ठाउँमा अघि र पछाडि गर्दै गाडीलाई छेउतर्फ सार्नुहोस्।","my":"ရှေ့နောက်နေရာကျဉ်းသည့်အခါ ရှေ့တိုးနောက်ဆုတ်ပြုလုပ်ကာ ကားကို ဘေးဘက်သို့ ရွှေ့ပါ။"},"どうしても停止できないときは、安全な方向へ回避します。":{"id":"Jika benar-benar tidak dapat berhenti, arahkan kendaraan ke arah yang lebih aman untuk menghindar.","ne":"कुनै हालतमा रोक्न नसके सुरक्षित दिशातर्फ बचाउ गर्नुहोस्।","my":"မည်သို့မျှ မရပ်နိုင်ပါက ပိုလုံခြုံသည့် ဦးတည်ရာဘက်သို့ ရှောင်ပါ။"},"カーブでは速度が少し上がるだけでも遠心力が大きくなり、車線からはみ出す危険が増します。":{"id":"Di tikungan, sedikit kenaikan kecepatan dapat sangat meningkatkan gaya sentrifugal dan risiko keluar dari lajur.","ne":"मोडमा गति अलिकति बढ्दा पनि केन्द्रापसारक बल धेरै बढ्छ र लेनबाट बाहिरिने जोखिम बढ्छ।","my":"ကွေ့တွင် အမြန်နှုန်းနည်းနည်းတိုးရုံနှင့် အပြင်ဘက်တွန်းအား များလာပြီး လမ်းကြောမှထွက်နိုင်သည့် အန္တရာယ်တိုးသည်။"},"経路を間違えたり規制で進めないときは、慌てず安全な場所に停止して復帰方法を考えます。":{"id":"Jika salah rute atau tidak bisa lanjut karena pembatasan, jangan panik; berhenti di tempat aman dan pikirkan cara kembali ke rute.","ne":"बाटो गलत भयो वा प्रतिबन्धले अगाडि जान नसके नआत्तिई सुरक्षित ठाउँमा रोकिएर मार्गमा फर्कने उपाय सोच्नुहोस्।","my":"လမ်းမှားသွားပါက သို့မဟုတ် ကန့်သတ်ချက်ကြောင့် မဆက်နိုင်ပါက မပူပန်ဘဲ လုံခြုံရာတွင် ရပ်ပြီး လမ်းပြန်ဝင်နည်းကို စဉ်းစားပါ။"},"駐車車両の陰から歩行者や自転車が出る、ドアが開く、車が発進する可能性を考えます。":{"id":"Antisipasi pejalan kaki atau pesepeda muncul dari balik kendaraan parkir, pintu terbuka, atau kendaraan mulai bergerak.","ne":"पार्क गरिएको गाडीको पछाडिबाट पैदलयात्री वा साइकल निस्कन सक्छ, ढोका खुल्न सक्छ वा गाडी चल्न सक्छ भन्ने अनुमान गर्नुहोस्।","my":"ရပ်ထားသောကားနောက်ကွယ်မှ လမ်းလျှောက်သူ သို့မဟုတ် စက်ဘီးထွက်လာနိုင်ခြင်း၊ တံခါးဖွင့်နိုင်ခြင်း၊ ကားစတင်ရွေ့နိုင်ခြင်းကို ခန့်မှန်းထားပါ။"},"写真や実際の場面から、どこにどのような危険があるかを考えます。":{"id":"Dari foto atau situasi nyata, pikirkan di mana dan jenis bahaya apa yang mungkin ada.","ne":"तस्बिर वा वास्तविक अवस्थाबाट कहाँ कस्तो खतरा हुन सक्छ भनेर सोच्नुहोस्।","my":"ဓာတ်ပုံ သို့မဟုတ် တကယ့်အခြေအနေမှ ဘယ်နေရာတွင် ဘယ်လိုအန္တရာယ်ရှိနိုင်သည်ကို စဉ်းစားပါ။"},"速度が高いほど停止距離が長くなるため、十分な車間距離を取ります。":{"id":"Semakin tinggi kecepatan, semakin panjang jarak berhenti, jadi jaga jarak kendaraan yang cukup.","ne":"गति जति बढी हुन्छ रोक्ने दूरी त्यति लामो हुन्छ, त्यसैले पर्याप्त दूरी राख्नुहोस्।","my":"အမြန်နှုန်းမြင့်လေလေ ရပ်ရန်အကွာအဝေးရှည်လေလေ ဖြစ်သောကြောင့် လုံလောက်သောကားအကွာအဝေးထားပါ။"},"前後の安全を確認し、合図を出して追越車線へ移り、十分な間隔を取って追い越します。":{"id":"Periksa keamanan depan dan belakang, beri sinyal, pindah ke lajur untuk menyalip, lalu menyalip dengan jarak yang cukup.","ne":"अगाडि-पछाडि सुरक्षा जाँच गरी संकेत दिएर ओभरटेक लेनमा सर्नुहोस् र पर्याप्त दूरी राखेर ओभरटेक गर्नुहोस्।","my":"ရှေ့နောက်လုံခြုံရေးကို စစ်ဆေးပြီး အချက်ပြကာ ကျော်တက်လမ်းကြောသို့ ပြောင်းပြီး လုံလောက်သောအကွာအဝေးဖြင့် ကျော်တက်ပါ။"},"案内標識を早めに確認し、出口や分岐に必要な車線へ余裕を持って移ります。":{"id":"Periksa rambu petunjuk lebih awal dan pindah dengan cukup waktu ke lajur yang diperlukan untuk pintu keluar atau percabangan.","ne":"मार्गदर्शन चिन्ह चाँडै हेरी निकास वा शाखाका लागि आवश्यक लेनमा समयमै सर्नुहोस्।","my":"လမ်းညွှန်ဆိုင်းဘုတ်ကို စောစောစစ်ဆေးပြီး ထွက်ပေါက် သို့မဟုတ် လမ်းခွဲအတွက် လိုအပ်သောလမ်းကြောသို့ အချိန်လုံလောက်စွာဖြင့် ပြောင်းပါ။"},"減速車線へ入ってから徐々に速度を落とします。":{"id":"Kurangi kecepatan secara bertahap setelah masuk lajur perlambatan.","ne":"डिसेलेरेसन लेनमा प्रवेश गरेपछि क्रमशः गति घटाउनुहोस्।","my":"အရှိန်လျှော့လမ်းကြောထဲ ဝင်ပြီးမှ အမြန်နှုန်းကို တဖြည်းဖြည်းလျှော့ပါ။"},"高速走行後は速度感覚が鈍り、実際より遅く感じることがあります。":{"id":"Setelah berkendara cepat, rasa kecepatan dapat menurun sehingga terasa lebih lambat dari kecepatan sebenarnya.","ne":"उच्च गतिमा चलाएपछि गति अनुभूति सुस्त हुन सक्छ र वास्तविकभन्दा कम जस्तो लाग्न सक्छ।","my":"အမြန်နှုန်းမြင့်မောင်းပြီးနောက် အမြန်နှုန်းခံစားချက် လျော့သွား၍ အမှန်တကယ်ထက် နှေးသလို ခံစားရနိုင်သည်။"},"疲れを感じる前にPA・SAなどで早めに休憩します。":{"id":"Beristirahatlah lebih awal di PA/SA sebelum merasa lelah.","ne":"थकान महसुस हुनुअघि PA/SA जस्ता ठाउँमा चाँडै विश्राम गर्नुहोस्।","my":"ပင်ပန်းမခံစားမီ PA/SA ကဲ့သို့သောနေရာတွင် စောစောအနားယူပါ။"},"右側からの合流、急なカーブ、短い車間、複雑な分岐などに注意します。":{"id":"Waspadai penggabungan dari kanan, tikungan tajam, jarak kendaraan pendek, dan percabangan yang rumit.","ne":"दायाँबाट मर्ज हुने ट्राफिक, तीखा मोड, छोटो दूरी र जटिल शाखाहरूमा ध्यान दिनुहोस्।","my":"ညာဘက်မှ ပေါင်းဝင်ယာဉ်၊ ရုတ်တရက်ကွေ့များ၊ ကားအကွာအဝေးတိုခြင်းနှင့် ရှုပ်ထွေးသောလမ်းခွဲများကို သတိထားပါ။"},"時間制限駐車区間では枠内に駐車し、パーキング・チケットを車の前面から見やすい場所に表示します。":{"id":"Di area parkir terbatas waktu, parkir di dalam kotak dan tampilkan tiket parkir di tempat yang mudah terlihat dari depan kendaraan.","ne":"समय-सीमित पार्किङ क्षेत्रमा बाकसभित्र पार्क गरी पार्किङ टिकट गाडीको अगाडिबाट सजिलै देखिने ठाउँमा राख्नुहोस्।","my":"အချိန်ကန့်သတ်ပါကင်ဧရိယာတွင် သတ်မှတ်ဘောင်အတွင်း ရပ်ပြီး ပါကင်လက်မှတ်ကို ကားရှေ့မှ လွယ်လင့်တကူမြင်ရသောနေရာတွင် ပြပါ။"},"第2段階で学んだ内容全般について、道路や交通の状況にすばやく対応し、安全・円滑かつ自主的に運転できるか確認します。":{"id":"Periksa apakah Anda dapat menerapkan seluruh materi tahap 2, cepat menanggapi kondisi jalan dan lalu lintas, serta mengemudi dengan aman, lancar, dan mandiri.","ne":"दोस्रो चरणका सबै विषय लागू गरी सडक र ट्राफिक अवस्थालाई छिटो प्रतिक्रिया दिँदै सुरक्षित, सहज र स्वतन्त्र रूपमा चलाउन सक्नुहुन्छ कि जाँच गरिन्छ।","my":"ဒုတိယအဆင့်တွင် သင်ယူထားသမျှကို အသုံးချပြီး လမ်းနှင့်ယာဉ်ကြောအခြေအနေကို မြန်မြန်တုံ့ပြန်ကာ လုံခြုံ၊ ချောမွေ့၊ ကိုယ်တိုင်မောင်းနိုင်မနိုင် စစ်ဆေးသည်။"},"道路や交通の状況を的確に読み取り、見えない危険も予測して運転します。":{"id":"Baca kondisi jalan dan lalu lintas dengan tepat, lalu mengemudi sambil mengantisipasi bahaya yang tidak terlihat.","ne":"सडक र ट्राफिक अवस्था सही रूपमा बुझेर नदेखिने खतरा पनि अनुमान गर्दै चलाउनुहोस्।","my":"လမ်းနှင့်ယာဉ်ကြောအခြေအနေကို မှန်ကန်စွာဖတ်ပြီး မမြင်ရသောအန္တရာယ်များကိုပါ ခန့်မှန်းကာ မောင်းပါ။"},"他の交通に気配りをしながら、法規に従った基本的な走行を行います。":{"id":"Lakukan pengemudian dasar sesuai peraturan sambil memperhatikan pengguna jalan lain.","ne":"अन्य ट्राफिकलाई ध्यान दिँदै नियमअनुसार आधारभूत रूपमा चलाउनुहोस्।","my":"အခြားယာဉ်ကြောကို ဂရုစိုက်ရင်း စည်းမျဉ်းနှင့်အညီ အခြေခံမောင်းနှင်မှု ပြုလုပ်ပါ။"},"自主的に走行経路を設定し、他の交通に気配りしながら主体的に運転します。":{"id":"Tentukan rute sendiri dan mengemudilah secara mandiri sambil memperhatikan pengguna jalan lain.","ne":"आफैं मार्ग तय गरी अन्य ट्राफिकलाई ध्यान दिँदै स्वतन्त्र रूपमा चलाउनुहोस्।","my":"မိမိဘာသာ လမ်းကြောင်းသတ်မှတ်ပြီး အခြားယာဉ်ကြောကို ဂရုစိုက်ကာ ကိုယ်တိုင်ဆုံးဖြတ်၍ မောင်းပါ။"},"方向変換、縦列駐車、その他の交通状況に応じた適切な方法で駐停車します。":{"id":"Lakukan putar arah, parkir paralel, dan berhenti atau parkir dengan cara yang sesuai kondisi lalu lintas.","ne":"दिशा परिवर्तन, समानान्तर पार्किङ र अन्य ट्राफिक अवस्थाअनुसार उचित तरिकाले रोक्ने वा पार्क गर्ने काम गर्नुहोस्।","my":"ဦးတည်ချက်ပြောင်းခြင်း၊ မျဉ်းပြိုင်ပါကင်နှင့် အခြားယာဉ်ကြောအခြေအနေအလိုက် သင့်တော်စွာ ရပ်နား/ပါကင်လုပ်ပါ။"},"卒業検定では、免許取得後に一人で道路を運転するために必要な最低限度の能力があるか判定します。":{"id":"Pada ujian kelulusan, dinilai apakah Anda memiliki kemampuan minimum yang diperlukan untuk mengemudi sendiri di jalan setelah mendapat SIM.","ne":"स्नातक परीक्षामा लाइसेन्स पाएपछि एक्लै सडकमा चलाउन आवश्यक न्यूनतम क्षमता छ कि छैन मूल्याङ्कन गरिन्छ।","my":"ဘွဲ့ရစာမေးပွဲတွင် လိုင်စင်ရပြီးနောက် လမ်းပေါ်တွင် တစ်ယောက်တည်း မောင်းရန် လိုအပ်သော အနည်းဆုံးစွမ်းရည်ရှိမရှိ အကဲဖြတ်သည်။"},"検定は乗車するときから下車するまでのすべてが採点対象で、減点方式で行われます。":{"id":"Dalam ujian, semua tindakan dari naik sampai turun dari kendaraan dinilai dengan sistem pengurangan poin.","ne":"परीक्षामा गाडी चढेदेखि ओर्लिएसम्म सबै कार्य अंक कटौती प्रणालीमा मूल्याङ्कन हुन्छ।","my":"စာမေးပွဲတွင် ကားပေါ်တက်ချိန်မှ ဆင်းချိန်အထိ အရာအားလုံးကို အမှတ်လျှော့စနစ်ဖြင့် အကဲဖြတ်သည်။"}};
+  if (typeof MOBILE_ITEMS === "undefined" || !Array.isArray(MOBILE_ITEMS)) return;
+  const LABELS = { id: "Penjelasan", ne: "व्याख्या", my: "ရှင်းလင်းချက်" };
+  let fixed = 0;
+  MOBILE_ITEMS.forEach(item => (item.blocks || []).forEach(block => {
+    const ja = Array.isArray(block.ja) ? block.ja : [];
+    const first = ja[0];
+    if (!first || first.label !== "説明" || !first.text) return;
+    const tr = EXTRA[first.text.trim()];
+    if (!tr) return;
+    ["id","ne","my"].forEach(lang => {
+      if (!Array.isArray(block[lang])) block[lang] = [];
+      if (!block[lang][0]) block[lang][0] = { label: LABELS[lang], text: tr[lang] };
+      else { block[lang][0].label = LABELS[lang]; block[lang][0].text = tr[lang]; }
+    });
+    fixed++;
+  }));
+  console.log(`追加3言語の説明欄を${fixed}件補完しました。`);
 })();
