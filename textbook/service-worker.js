@@ -1,4 +1,4 @@
-const CORE_CACHE = "textbook-core-v14-stage-pinch-zoom";
+const CORE_CACHE = "textbook-core-v15-3lang-refresh";
 const PDF_CACHE = "textbook-pdf-files-v1";
 const PDFJS_CACHE = "textbook-pdfjs-runtime-v1";
 
@@ -11,6 +11,7 @@ const coreAssets = [
   "./pdf-viewer.js",
   "./data.js",
   "./mobile-data.js",
+  "./mobile-data-3language-patch.js",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png"
@@ -68,13 +69,34 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.origin === self.location.origin) {
+    const isNavigation = request.mode === "navigate";
+    const isAppCode = /\.(?:html|js|css)$/i.test(url.pathname) || url.pathname.endsWith("/");
+
+    if (isNavigation || isAppCode) {
+      event.respondWith(
+        caches.open(CORE_CACHE).then(async (cache) => {
+          try {
+            const network = await fetch(request, { cache: "no-store" });
+            if (network.ok) await cache.put(request, network.clone());
+            return network;
+          } catch (_error) {
+            const cached = await cache.match(request);
+            return cached || Response.error();
+          }
+        })
+      );
+      return;
+    }
+
     event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+      caches.match(request).then(async (cached) => {
+        if (cached) return cached;
+        const response = await fetch(request);
         if (response.ok) {
           caches.open(CORE_CACHE).then((cache) => cache.put(request, response.clone()));
         }
         return response;
-      }))
+      })
     );
   }
 });
