@@ -106,61 +106,77 @@ exports.handler = async function (event) {
       "?key=" + encodeURIComponent(apiKey);
 
     let response;
+    let rawBody = "";
+    let contentType = "";
 
-    try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          q: text,
-          source: source,
-          target: target,
-          format: "text"
-        })
-      });
-    } catch (fetchError) {
-      console.error(logPrefix, "Google fetch failed:", fetchError);
-      return {
-        statusCode: 502,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          error: "Google翻訳への接続に失敗しました",
-          detail: String(fetchError?.message || fetchError)
-        })
-      };
-    }
+    // GoogleがHTTP 429を返した場合だけ自動再試行
+    const retryDelays = [0, 800, 1600];
 
-    const contentType = response.headers.get("content-type") || "";
-    const rawBody = await response.text();
+    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+      if (retryDelays[attempt] > 0) {
+        console.log(logPrefix, "Retry wait:", retryDelays[attempt], "ms");
+        await new Promise((resolve) => setTimeout(resolve, retryDelays[attempt]));
+      }
 
-    console.log(
-      logPrefix,
-      "Google response",
-      JSON.stringify({
-        status: response.status,
-        ok: response.ok,
-        content_type: contentType,
-        body_length: rawBody.length
-      })
-    );
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            q: text,
+            source: source,
+            target: target,
+            format: "text"
+          })
+        });
+      } catch (fetchError) {
+        console.error(logPrefix, "Google fetch failed:", fetchError);
+        return {
+          statusCode: 502,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "Google翻訳への接続に失敗しました",
+            detail: String(fetchError?.message || fetchError)
+          })
+        };
+      }
 
-    if (!response.ok) {
-      console.error(
+      contentType = response.headers.get("content-type") || "";
+      rawBody = await response.text();
+
+      console.log(
         logPrefix,
-        "Google returned an error response. Body preview:",
-        rawBody.slice(0, 500)
+        "Google response",
+        JSON.stringify({
+          status: response.status,
+          ok: response.ok,
+          content_type: contentType,
+          body_length: rawBody.length,
+          attempt: attempt + 1
+        })
       );
 
-      return {
-        statusCode: response.status,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          error: "Google translation error",
-          google_status: response.status
-        })
-      };
+      if (response.ok) break;
+
+      if (response.status !== 429 || attempt === retryDelays.length - 1) {
+        console.error(
+          logPrefix,
+          "Google returned an error response. Body preview:",
+          rawBody.slice(0, 500)
+        );
+        return {
+          statusCode: response.status,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "Google translation error",
+            google_status: response.status
+          })
+        };
+      }
+
+      console.warn(logPrefix, "Google returned 429; retrying.");
     }
 
     let data;
