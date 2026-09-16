@@ -87,22 +87,38 @@ exports.handler = async function (event) {
     const target = map[targetRaw] || String(targetRaw).toLowerCase();
     const source = map[sourceRaw] || String(sourceRaw).toLowerCase();
 
+    // Google Cloud Translation API v2
+    const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+
+    if (!apiKey) {
+      console.error(logPrefix, "GOOGLE_TRANSLATE_API_KEY is not configured");
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: "GOOGLE_TRANSLATE_API_KEY が設定されていません"
+        })
+      };
+    }
+
     const url =
-      "https://translate.googleapis.com/translate_a/single" +
-      "?client=gtx" +
-      "&sl=" + encodeURIComponent(source) +
-      "&tl=" + encodeURIComponent(target) +
-      "&dt=t" +
-      "&q=" + encodeURIComponent(text);
+      "https://translation.googleapis.com/language/translate/v2" +
+      "?key=" + encodeURIComponent(apiKey);
 
     let response;
 
     try {
       response = await fetch(url, {
-        method: "GET",
+        method: "POST",
         headers: {
-          "User-Agent": "Mozilla/5.0"
-        }
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          q: text,
+          source: source,
+          target: target,
+          format: "text"
+        })
       });
     } catch (fetchError) {
       console.error(logPrefix, "Google fetch failed:", fetchError);
@@ -168,8 +184,11 @@ exports.handler = async function (event) {
     }
 
     const translated =
-      Array.isArray(data) && Array.isArray(data[0])
-        ? data[0].map(part => part?.[0] || "").join("")
+      data &&
+      data.data &&
+      Array.isArray(data.data.translations) &&
+      data.data.translations[0]
+        ? String(data.data.translations[0].translatedText || "")
         : "";
 
     if (!translated) {
@@ -177,8 +196,8 @@ exports.handler = async function (event) {
         logPrefix,
         "JSON was received, but no translated text was found.",
         JSON.stringify({
-          top_level_is_array: Array.isArray(data),
-          first_item_is_array: Array.isArray(data?.[0])
+          has_data: !!data?.data,
+          translations_is_array: Array.isArray(data?.data?.translations)
         })
       );
 
