@@ -721,7 +721,7 @@ function refreshCategories(){
   let current=cat.value||'すべて';
   cat.innerHTML=['すべて',...new Set(allPhrases().map(p=>p.category))].map(x=>`<option ${x===current?'selected':''}>${esc(x)}</option>`).join('');
 }
-refreshCategories();document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('.modes button').forEach(x=>x.classList.toggle('active',x===b));q.value='';render();});document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{let m=b.dataset.filter;if(hiddenModes.has(m)){hiddenModes.delete(m);b.classList.remove('off');b.textContent=m+' ON';}else{hiddenModes.add(m);b.classList.add('off');b.textContent=m+' OFF';}render();});q.oninput=render;q.addEventListener('keydown',e=>{if(e.key==='Enter'){q.blur();}});cat.onchange=render;lang.onchange=()=>{loadVoices();render();};window.addEventListener('load',()=>{try{render();}catch(e){console.error('initial render failed',e);}}, {once:true});if(!checkStorageAvailable()){status.textContent='保存機能が使えない状態です。Chromeの通常モードで開いてください。';}loadVoices();if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=loadVoices;
+refreshCategories();document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('.modes button').forEach(x=>x.classList.toggle('active',x===b));q.value='';syncMultiCategoriesToCurrentMode();buildMultiCategoryPanel();render();});document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{let m=b.dataset.filter;if(hiddenModes.has(m)){hiddenModes.delete(m);b.classList.remove('off');b.textContent=m+' ON';}else{hiddenModes.add(m);b.classList.add('off');b.textContent=m+' OFF';}render();});q.oninput=render;q.addEventListener('keydown',e=>{if(e.key==='Enter'){q.blur();}});cat.onchange=render;lang.onchange=()=>{loadVoices();render();};window.addEventListener('load',()=>{try{render();}catch(e){console.error('initial render failed',e);}}, {once:true});if(!checkStorageAvailable()){status.textContent='保存機能が使えない状態です。Chromeの通常モードで開いてください。';}loadVoices();if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=loadVoices;
 
 /* menu two-swipe show patch */
 let menuLastScrollY = window.scrollY;
@@ -1595,17 +1595,47 @@ function initFavoriteReorderRestored(){
   });
 }
 
-/* multi category filter patch */
+/* multi category filter patch - mode linked category list 2026-09-22 */
 let selectedCategoriesMulti = new Set(JSON.parse(localStorage.getItem('selected_categories_multi')||'[]'));
 
 function getAllCategoriesMulti(){
-  return [...new Set(allPhrases().map(p=>p.category).filter(Boolean))].sort();
+  // 「項目を選択」の候補を、現在選択中のモードに合わせて自動絞り込みする。
+  // すべて：全項目
+  // 教習・指導・冬道・MT車・検定・質問・緊急：そのモードに登録されている項目のみ
+  // お気に入り：お気に入り登録されているフレーズの項目のみ
+  let phrases = allPhrases();
+
+  if(mode === 'お気に入り'){
+    phrases = phrases.filter(p => favs.has(Number(p.id)));
+  }else if(mode !== 'すべて'){
+    phrases = phrases.filter(p => p.mode === mode);
+  }
+
+  return [...new Set(phrases.map(p=>p.category).filter(Boolean))].sort();
+}
+
+function syncMultiCategoriesToCurrentMode(){
+  const available = new Set(getAllCategoriesMulti());
+  let changed = false;
+
+  // 別モードで選択していた項目が現在のモードに存在しない場合だけ解除する。
+  [...selectedCategoriesMulti].forEach(c=>{
+    if(!available.has(c)){
+      selectedCategoriesMulti.delete(c);
+      changed = true;
+    }
+  });
+
+  if(changed){
+    localStorage.setItem('selected_categories_multi',JSON.stringify([...selectedCategoriesMulti]));
+  }
 }
 function toggleMultiCatPanel(){
   multiCatPanel.classList.toggle('show');
   buildMultiCategoryPanel();
 }
 function buildMultiCategoryPanel(){
+  syncMultiCategoriesToCurrentMode();
   const cats=getAllCategoriesMulti();
   multiCatGrid.innerHTML=cats.map(c=>{
     const checked=selectedCategoriesMulti.has(c)?'checked':'';
