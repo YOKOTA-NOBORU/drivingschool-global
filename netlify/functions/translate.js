@@ -87,64 +87,96 @@ exports.handler = async function (event) {
     const target = map[targetRaw] || String(targetRaw).toLowerCase();
     const source = map[sourceRaw] || String(sourceRaw).toLowerCase();
 
-    const url =
-      "https://translate.googleapis.com/translate_a/single" +
-      "?client=gtx" +
-      "&sl=" + encodeURIComponent(source) +
-      "&tl=" + encodeURIComponent(target) +
-      "&dt=t" +
-      "&q=" + encodeURIComponent(text);
+    // Google Cloud Translation API v2
+    const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
 
-    let response;
-
-    try {
-      response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "User-Agent": "Mozilla/5.0"
-        }
-      });
-    } catch (fetchError) {
-      console.error(logPrefix, "Google fetch failed:", fetchError);
+    if (!apiKey) {
+      console.error(logPrefix, "GOOGLE_TRANSLATE_API_KEY is not configured");
       return {
-        statusCode: 502,
+        statusCode: 500,
         headers: corsHeaders,
         body: JSON.stringify({
-          error: "Google翻訳への接続に失敗しました",
-          detail: String(fetchError?.message || fetchError)
+          error: "GOOGLE_TRANSLATE_API_KEY が設定されていません"
         })
       };
     }
 
-    const contentType = response.headers.get("content-type") || "";
-    const rawBody = await response.text();
+    const url =
+      "https://translation.googleapis.com/language/translate/v2" +
+      "?key=" + encodeURIComponent(apiKey);
 
-    console.log(
-      logPrefix,
-      "Google response",
-      JSON.stringify({
-        status: response.status,
-        ok: response.ok,
-        content_type: contentType,
-        body_length: rawBody.length
-      })
-    );
+    let response;
+    let rawBody = "";
+    let contentType = "";
 
-    if (!response.ok) {
-      console.error(
+    // GoogleがHTTP 429を返した場合だけ自動再試行
+    const retryDelays = [0, 800, 1600];
+
+    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+      if (retryDelays[attempt] > 0) {
+        console.log(logPrefix, "Retry wait:", retryDelays[attempt], "ms");
+        await new Promise((resolve) => setTimeout(resolve, retryDelays[attempt]));
+      }
+
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            q: text,
+            source: source,
+            target: target,
+            format: "text"
+          })
+        });
+      } catch (fetchError) {
+        console.error(logPrefix, "Google fetch failed:", fetchError);
+        return {
+          statusCode: 502,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "Google翻訳への接続に失敗しました",
+            detail: String(fetchError?.message || fetchError)
+          })
+        };
+      }
+
+      contentType = response.headers.get("content-type") || "";
+      rawBody = await response.text();
+
+      console.log(
         logPrefix,
-        "Google returned an error response. Body preview:",
-        rawBody.slice(0, 500)
+        "Google response",
+        JSON.stringify({
+          status: response.status,
+          ok: response.ok,
+          content_type: contentType,
+          body_length: rawBody.length,
+          attempt: attempt + 1
+        })
       );
 
-      return {
-        statusCode: response.status,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          error: "Google translation error",
-          google_status: response.status
-        })
-      };
+      if (response.ok) break;
+
+      if (response.status !== 429 || attempt === retryDelays.length - 1) {
+        console.error(
+          logPrefix,
+          "Google returned an error response. Body preview:",
+          rawBody.slice(0, 500)
+        );
+        return {
+          statusCode: response.status,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "Google translation error",
+            google_status: response.status
+          })
+        };
+      }
+
+      console.warn(logPrefix, "Google returned 429; retrying.");
     }
 
     let data;
@@ -168,8 +200,11 @@ exports.handler = async function (event) {
     }
 
     const translated =
-      Array.isArray(data) && Array.isArray(data[0])
-        ? data[0].map(part => part?.[0] || "").join("")
+      data &&
+      data.data &&
+      Array.isArray(data.data.translations) &&
+      data.data.translations[0]
+        ? String(data.data.translations[0].translatedText || "")
         : "";
 
     if (!translated) {
@@ -177,8 +212,8 @@ exports.handler = async function (event) {
         logPrefix,
         "JSON was received, but no translated text was found.",
         JSON.stringify({
-          top_level_is_array: Array.isArray(data),
-          first_item_is_array: Array.isArray(data?.[0])
+          has_data: !!data?.data,
+          translations_is_array: Array.isArray(data?.data?.translations)
         })
       );
 
