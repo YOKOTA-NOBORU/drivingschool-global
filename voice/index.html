@@ -465,6 +465,29 @@ body {
 }
 </style>
 
+
+<style>
+/* ===== smartphone width / centering fix 2026-09-22 ===== */
+html, body {
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+*, *::before, *::after { box-sizing:border-box; }
+.toolbar, main, .footer, header {
+  width:100%;
+  max-width:100%;
+}
+@media (max-width:560px){
+  body{margin:0!important;}
+  header{padding-left:16px!important;padding-right:16px!important;}
+  .toolbar{padding-left:16px!important;padding-right:16px!important;}
+  main{padding-left:16px!important;padding-right:16px!important;margin-left:auto!important;margin-right:auto!important;}
+  .footer{left:0;right:0;margin:0;width:100%!important;padding-left:16px!important;padding-right:16px!important;}
+  input, select, button, .card, .panel, .multiCatPanel{max-width:100%;}
+  .floating-buttons{right:10px!important;}
+}
+</style>
 </head>
 <body>
 <header><h1 id="appTitle">教習所向け 多言語音声アプリ</h1>
