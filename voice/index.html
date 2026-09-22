@@ -467,25 +467,41 @@ body {
 
 
 <style>
-/* ===== smartphone width / centering fix 2026-09-22 ===== */
-html, body {
-  width:100%;
-  max-width:100%;
-  overflow-x:hidden;
-}
+/* Smartphone viewport fix: constrain the actual grid items, not just page overflow. */
+html { width:100%; max-width:100%; overflow-x:clip; }
+body { width:100%; max-width:100%; margin:0; overflow-x:clip; }
 *, *::before, *::after { box-sizing:border-box; }
-.toolbar, main, .footer, header {
-  width:100%;
-  max-width:100%;
+header, .toolbar, main, .footer { width:100%; max-width:100%; min-width:0; }
+header, .toolbar { left:0; right:0; }
+main { margin-left:auto; margin-right:auto; }
+/* A grid's default min-width:auto can make a 100%-wide select overflow its column. */
+.controls, .modes, .filters, .tools, .formgrid, .multiCatGrid,
+.multiCatActions, .searchRow, .footer, .convActions, .convActions3 {
+  min-width:0;
 }
-@media (max-width:560px){
-  body{margin:0!important;}
-  header{padding-left:16px!important;padding-right:16px!important;}
-  .toolbar{padding-left:16px!important;padding-right:16px!important;}
-  main{padding-left:16px!important;padding-right:16px!important;margin-left:auto!important;margin-right:auto!important;}
-  .footer{left:0;right:0;margin:0;width:100%!important;padding-left:16px!important;padding-right:16px!important;}
-  input, select, button, .card, .panel, .multiCatPanel{max-width:100%;}
-  .floating-buttons{right:10px!important;}
+.controls > *, .modes > *, .filters > *, .tools > *, .formgrid > *,
+.multiCatGrid > *, .multiCatActions > *, .searchRow > *, .footer > *,
+.convActions > *, .convActions3 > * { min-width:0; max-width:100%; }
+.controls { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.modes, .filters { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.tools { grid-template-columns:repeat(3,minmax(0,1fr))!important; }
+.formgrid, .multiCatGrid, .multiCatActions, .footer { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.searchRow > input, .controls select, .controls input,
+.toolbar input, .toolbar select, .toolbar button,
+.card, .panel, .multiCatPanel, .multiCatBtn, .footer button {
+  max-width:100%; min-width:0;
+}
+.card { width:100%; }
+header .sub, .card, .jp, .target, .badge, .multiCatItem { overflow-wrap:anywhere; }
+@media(max-width:560px){
+  .controls { grid-template-columns:minmax(0,1fr); }
+  .modes, .filters, .tools { grid-template-columns:repeat(3,minmax(0,1fr))!important; }
+  .formgrid, .multiCatGrid { grid-template-columns:minmax(0,1fr); }
+  header { padding-left:14px; padding-right:14px; }
+  .toolbar { padding-left:10px; padding-right:10px; }
+  main { padding-left:12px; padding-right:12px; }
+  .footer { padding-left:10px; padding-right:10px; }
+  .floating-buttons { right:10px; }
 }
 </style>
 </head>
