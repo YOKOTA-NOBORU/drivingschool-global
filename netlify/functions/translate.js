@@ -1,3 +1,5 @@
+const admin = require("firebase-admin");
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type",
@@ -49,6 +51,60 @@ exports.handler = async function (event) {
         headers: corsHeaders,
         body: JSON.stringify({ error: "翻訳する文章がありません" })
       };
+    }
+
+    // Shared monthly translation limit (Firestore: translation_usage/global)
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+    if (!projectId || !clientEmail || !privateKey) {
+      throw new Error("Firebase環境変数が設定されていません");
+    }
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({ projectId, clientEmail, privateKey })
+      });
+    }
+    const db = admin.firestore();
+    const usageRef = db.collection("translation_usage").doc("global");
+    const monthNow = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit"
+    }).format(new Date()).slice(0, 7);
+    const charCount = text.length;
+
+    let usage;
+    try {
+      usage = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(usageRef);
+        const d = snap.exists ? snap.data() : {};
+        let used = Number(d.used || 0);
+        const limit = Number(d.limit || 50000);
+        let extra = Number(d.extra || 0);
+        if (String(d.month || "") !== monthNow) {
+          used = 0;
+          extra = 0;
+        }
+        const totalLimit = limit + extra;
+        if (used + charCount > totalLimit) {
+          const e = new Error("MONTHLY_LIMIT_REACHED");
+          e.usage = { used, limit, extra, totalLimit, requested: charCount, month: monthNow };
+          throw e;
+        }
+        const newUsed = used + charCount;
+        tx.set(usageRef, { used: newUsed, limit, extra, month: monthNow }, { merge: true });
+        return { used: newUsed, limit, extra, totalLimit, month: monthNow };
+      });
+    } catch (e) {
+      if (e.message === "MONTHLY_LIMIT_REACHED") {
+        return {
+          statusCode: 429, headers: corsHeaders,
+          body: JSON.stringify({
+            error: "今月の翻訳文字数上限に達しました。管理者に追加文字数を依頼してください。",
+            code: "MONTHLY_LIMIT_REACHED", usage: e.usage
+          })
+        };
+      }
+      throw e;
     }
 
     const map = {
@@ -240,7 +296,8 @@ exports.handler = async function (event) {
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({
-        text: translated
+        text: translated,
+        usage
       })
     };
   } catch (error) {
