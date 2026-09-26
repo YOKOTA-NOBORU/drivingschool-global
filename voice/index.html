@@ -721,8 +721,14 @@ async function autoTranslate(){
     newVi.value=vi;newEn.value=en;newZh.value=zh;newPt.value=pt;newId.value=id;newNe.value=ne;newMy.value=my;
     status.textContent='翻訳しました。内容を確認して登録してください。';
   }catch(e){
-    status.textContent='自動翻訳に失敗しました。';
-    alert('自動翻訳に失敗しました。日本語を仮入力するか、手動で入力してください。');
+    const msg = String(e && e.message || '');
+    if(msg.includes('今月の翻訳文字数上限に達しました') || msg.includes('MONTHLY_LIMIT_REACHED')){
+      status.textContent='翻訳文字数の月間上限に達しました。';
+      alert('今月の翻訳文字数の上限に達しました。管理者にお問い合わせください。');
+    }else{
+      status.textContent='自動翻訳に失敗しました。';
+      alert('自動翻訳に失敗しました。日本語を仮入力するか、手動で入力してください。');
+    }
   }finally{addPanel.classList.remove('loading');}
 }
 function copyFromJapanese(){
@@ -1884,8 +1890,16 @@ async function translateConversation(){
     if(typeof status!=='undefined')status.textContent='Googleで会話翻訳しました。';
   }catch(e){
     convTranslatedText='';
-    convResult.textContent='翻訳に失敗しました。Netlify Functions と Netlify Functionsを確認してください。';
-    alert('翻訳に失敗しました。Netlify Functions と Netlify Functionsを確認してください。');
+    const msg = String(e && e.message || '');
+    if(msg.includes('今月の翻訳文字数上限に達しました') || msg.includes('MONTHLY_LIMIT_REACHED')){
+      const limitMsg='今月の翻訳文字数の上限に達しました。管理者にお問い合わせください。';
+      convResult.textContent=limitMsg;
+      alert(limitMsg);
+      if(typeof status!=='undefined')status.textContent='翻訳文字数の月間上限に達しました。';
+    }else{
+      convResult.textContent='翻訳に失敗しました。通信状態を確認して、もう一度お試しください。';
+      alert('翻訳に失敗しました。通信状態を確認して、もう一度お試しください。');
+    }
   }
 }
 
