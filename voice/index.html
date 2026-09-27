@@ -504,6 +504,17 @@ header .sub, .card, .jp, .target, .badge, .multiCatItem { overflow-wrap:anywhere
   .floating-buttons { right:10px; }
 }
 </style>
+<script>
+(function(){
+  const KEY="drivingschool_translation_device_id";
+  let id=localStorage.getItem(KEY);
+  if(!id){
+    id="dev_"+((window.crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,""):(Date.now().toString(36)+"_"+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)));
+    localStorage.setItem(KEY,id);
+  }
+  window.TRANSLATION_DEVICE_ID=id;
+})();
+</script>
 </head>
 <body>
 <header><h1 id="appTitle">教習所向け 多言語音声アプリ</h1>
@@ -698,7 +709,8 @@ async function translateOne(text,target){
       body:JSON.stringify({
         text:text,
         target_lang:target,
-        source_lang:'JA'
+        source_lang:'JA',
+        device_id: window.TRANSLATION_DEVICE_ID
       })
     }
   );
@@ -2023,7 +2035,8 @@ let extraTranslationRunning=false;
             body: JSON.stringify({
               text: text,
               target_lang: target,
-              source_lang: 'JA'
+              source_lang: 'JA',
+        device_id: window.TRANSLATION_DEVICE_ID
             })
           }
         );

@@ -53,86 +53,44 @@ exports.handler = async function (event) {
       };
     }
 
-    // Shared monthly translation limit (Firestore: translation_usage/global)
+    // Per-device monthly translation limit
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKey = (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
-    if (!projectId || !clientEmail || !privateKey) {
-      throw new Error("Firebase環境変数が設定されていません");
+    if (!projectId || !clientEmail || !privateKey) throw new Error("Firebase環境変数が設定されていません");
+    if (!admin.apps.length) admin.initializeApp({credential: admin.credential.cert({ projectId, clientEmail, privateKey })});
+
+    const deviceId = String(input.device_id || "").trim();
+    if (!/^[A-Za-z0-9_-]{12,100}$/.test(deviceId)) {
+      return {statusCode:400,headers:corsHeaders,body:JSON.stringify({error:"端末IDを確認できません。ページを再読み込みしてください。",code:"DEVICE_ID_REQUIRED"})};
     }
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({ projectId, clientEmail, privateKey })
-      });
-    }
+
     const db = admin.firestore();
-    const usageRef = db.collection("translation_usage").doc("global");
-    const monthNow = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit"
-    }).format(new Date()).slice(0, 7);
+    const usageRef = db.collection("translation_usage_devices").doc(deviceId);
+    const monthNow = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit"}).format(new Date()).slice(0,7);
     const charCount = text.length;
 
-    let usage;
-    try {
-      usage = await db.runTransaction(async (tx) => {
-        const snap = await tx.get(usageRef);
-        const d = snap.exists ? snap.data() : {};
-        let used = Number(d.used || 0);
-        const limit = Number(d.limit || 50000);
-        let extra = Number(d.extra || 0);
-        if (String(d.month || "") !== monthNow) {
-          used = 0;
-          extra = 0;
-        }
-        const totalLimit = limit + extra;
-
-        // 上限超過時は transaction 内で例外を投げず、
-        // blocked を返して Google 翻訳を呼ぶ前に確実に停止する。
-        if (used + charCount > totalLimit) {
-          return {
-            blocked: true,
-            used,
-            limit,
-            extra,
-            totalLimit,
-            requested: charCount,
-            month: monthNow
-          };
-        }
-
-        const newUsed = used + charCount;
-        tx.set(
-          usageRef,
-          { used: newUsed, limit, extra, month: monthNow },
-          { merge: true }
-        );
-
-        return {
-          blocked: false,
-          used: newUsed,
-          limit,
-          extra,
-          totalLimit,
-          requested: charCount,
-          month: monthNow
-        };
-      });
-    } catch (e) {
-      console.error(logPrefix, "Firestore usage transaction failed:", e);
-      throw e;
-    }
+    const usage = await db.runTransaction(async tx => {
+      const snap = await tx.get(usageRef);
+      const d = snap.exists ? snap.data() : {};
+      let used = Number(d.used || 0);
+      const limit = Number(d.limit || 50000);
+      let extra = Number(d.extra || 0);
+      if (String(d.month || "") !== monthNow) { used = 0; extra = 0; }
+      const totalLimit = limit + extra;
+      if (used + charCount > totalLimit) {
+        return {blocked:true,used,limit,extra,totalLimit,requested:charCount,month:monthNow,deviceId};
+      }
+      const newUsed = used + charCount;
+      tx.set(usageRef,{used:newUsed,limit,extra,month:monthNow,lastUsedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      return {blocked:false,used:newUsed,limit,extra,totalLimit,requested:charCount,month:monthNow,deviceId};
+    });
 
     if (usage.blocked) {
-      console.log(logPrefix, "Monthly limit reached", JSON.stringify(usage));
-      return {
-        statusCode: 429,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          error: "今月の翻訳文字数上限に達しました。管理者に追加文字数を依頼してください。",
-          code: "MONTHLY_LIMIT_REACHED",
-          usage
-        })
-      };
+      return {statusCode:429,headers:corsHeaders,body:JSON.stringify({
+        error:"この端末は今月の翻訳文字数上限に達しました。管理者に追加文字数を依頼してください.",
+        code:"MONTHLY_LIMIT_REACHED",usage
+      })};
     }
 
     const map = {
