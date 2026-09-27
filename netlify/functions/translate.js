@@ -85,26 +85,54 @@ exports.handler = async function (event) {
           extra = 0;
         }
         const totalLimit = limit + extra;
+
+        // 上限超過時は transaction 内で例外を投げず、
+        // blocked を返して Google 翻訳を呼ぶ前に確実に停止する。
         if (used + charCount > totalLimit) {
-          const e = new Error("MONTHLY_LIMIT_REACHED");
-          e.usage = { used, limit, extra, totalLimit, requested: charCount, month: monthNow };
-          throw e;
+          return {
+            blocked: true,
+            used,
+            limit,
+            extra,
+            totalLimit,
+            requested: charCount,
+            month: monthNow
+          };
         }
+
         const newUsed = used + charCount;
-        tx.set(usageRef, { used: newUsed, limit, extra, month: monthNow }, { merge: true });
-        return { used: newUsed, limit, extra, totalLimit, month: monthNow };
+        tx.set(
+          usageRef,
+          { used: newUsed, limit, extra, month: monthNow },
+          { merge: true }
+        );
+
+        return {
+          blocked: false,
+          used: newUsed,
+          limit,
+          extra,
+          totalLimit,
+          requested: charCount,
+          month: monthNow
+        };
       });
     } catch (e) {
-      if (e.message === "MONTHLY_LIMIT_REACHED") {
-        return {
-          statusCode: 429, headers: corsHeaders,
-          body: JSON.stringify({
-            error: "今月の翻訳文字数上限に達しました。管理者に追加文字数を依頼してください。",
-            code: "MONTHLY_LIMIT_REACHED", usage: e.usage
-          })
-        };
-      }
+      console.error(logPrefix, "Firestore usage transaction failed:", e);
       throw e;
+    }
+
+    if (usage.blocked) {
+      console.log(logPrefix, "Monthly limit reached", JSON.stringify(usage));
+      return {
+        statusCode: 429,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: "今月の翻訳文字数上限に達しました。管理者に追加文字数を依頼してください。",
+          code: "MONTHLY_LIMIT_REACHED",
+          usage
+        })
+      };
     }
 
     const map = {
