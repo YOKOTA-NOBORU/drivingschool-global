@@ -504,6 +504,17 @@ header .sub, .card, .jp, .target, .badge, .multiCatItem { overflow-wrap:anywhere
   .floating-buttons { right:10px; }
 }
 </style>
+<script>
+(function(){
+  const KEY="drivingschool_translation_device_id";
+  let id=localStorage.getItem(KEY);
+  if(!id){
+    id="dev_"+((window.crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,""):(Date.now().toString(36)+"_"+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)));
+    localStorage.setItem(KEY,id);
+  }
+  window.TRANSLATION_DEVICE_ID=id;
+})();
+</script>
 </head>
 <body>
 <header><h1 id="appTitle">教習所向け 多言語音声アプリ</h1>
@@ -698,7 +709,8 @@ async function translateOne(text,target){
       body:JSON.stringify({
         text:text,
         target_lang:target,
-        source_lang:'JA'
+        source_lang:'JA',
+        device_id: window.TRANSLATION_DEVICE_ID
       })
     }
   );
@@ -706,7 +718,11 @@ async function translateOne(text,target){
   const data = await res.json();
 
   if(!res.ok){
-    throw new Error(data.error || 'translate failed');
+    const err = new Error(data.error || 'translate failed');
+    err.code = data.code || '';
+    err.httpStatus = res.status;
+    err.usage = data.usage || null;
+    throw err;
   }
 
   return data.text;
@@ -721,8 +737,13 @@ async function autoTranslate(){
     newVi.value=vi;newEn.value=en;newZh.value=zh;newPt.value=pt;newId.value=id;newNe.value=ne;newMy.value=my;
     status.textContent='翻訳しました。内容を確認して登録してください。';
   }catch(e){
-    status.textContent='自動翻訳に失敗しました。';
-    alert('自動翻訳に失敗しました。日本語を仮入力するか、手動で入力してください。');
+    if(e && e.code === 'MONTHLY_LIMIT_REACHED'){
+      status.textContent='翻訳文字数の月間上限に達しました。';
+      alert('今月の翻訳文字数上限に達しました。管理者に追加文字数を依頼してください。');
+    }else{
+      status.textContent='自動翻訳に失敗しました。';
+      alert('自動翻訳に失敗しました。日本語を仮入力するか、手動で入力してください。');
+    }
   }finally{addPanel.classList.remove('loading');}
 }
 function copyFromJapanese(){
@@ -1884,8 +1905,14 @@ async function translateConversation(){
     if(typeof status!=='undefined')status.textContent='Googleで会話翻訳しました。';
   }catch(e){
     convTranslatedText='';
-    convResult.textContent='翻訳に失敗しました。Netlify Functions と Netlify Functionsを確認してください。';
-    alert('翻訳に失敗しました。Netlify Functions と Netlify Functionsを確認してください。');
+    if(e && e.code === 'MONTHLY_LIMIT_REACHED'){
+      const msg='今月の翻訳文字数上限に達しました。管理者に追加文字数を依頼してください。';
+      convResult.textContent=msg;
+      alert(msg);
+    }else{
+      convResult.textContent='翻訳に失敗しました。通信状態を確認して、もう一度お試しください。';
+      alert('翻訳に失敗しました。通信状態を確認して、もう一度お試しください。');
+    }
   }
 }
 
@@ -1909,32 +1936,7 @@ setTimeout(()=>{
 
 
 
-/* Google translation via Netlify Function proxy */
-async function translateOne(text,target){
-  const map = {
-    vi: 'VI',
-    en: 'EN-US',
-    'en-US': 'EN-US',
-    zh: 'ZH',
-    'zh-CN': 'ZH',
-    pt: 'PT-BR',
-    'pt-BR': 'PT-BR',
-    idn:'ID', id:'ID', 'id-ID':'ID', ne:'NE', 'ne-NP':'NE', my:'MY', 'my-MM':'MY'
-  };
-  const t = map[target] || String(target || 'VI').toUpperCase();
-  const res = await fetch(
-  'https://drivingschool-globaltalk.netlify.app/.netlify/functions/translate',
-  {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ text:text, target_lang:t, source_lang:'JA' })
-  });
-  const data = await res.json().catch(()=>({}));
-  if(!res.ok){
-    throw new Error(data.error || 'Google translation proxy error');
-  }
-  return data.text || text;
-}
+
 
 </script>
 <div id="editOverlay" class="editOverlay">
@@ -2033,7 +2035,8 @@ let extraTranslationRunning=false;
             body: JSON.stringify({
               text: text,
               target_lang: target,
-              source_lang: 'JA'
+              source_lang: 'JA',
+        device_id: window.TRANSLATION_DEVICE_ID
             })
           }
         );
@@ -2345,8 +2348,14 @@ async function translateConversation(){
     speakWithLang(convTranslatedText, jp, l);
   }catch(e){
     convTranslatedText = '';
-    convResult.textContent = '翻訳に失敗しました。Netlify Functions と Netlify Functionsを確認してください。';
-    alert('翻訳に失敗しました。Netlify Functions と Netlify Functionsを確認してください。');
+    if(e && e.code === 'MONTHLY_LIMIT_REACHED'){
+      const msg = '今月の翻訳文字数上限に達しました。管理者に追加文字数を依頼してください。';
+      convResult.textContent = msg;
+      alert(msg);
+    }else{
+      convResult.textContent = '翻訳に失敗しました。通信状態を確認して、もう一度お試しください。';
+      alert('翻訳に失敗しました。通信状態を確認して、もう一度お試しください。');
+    }
   }finally{
     if(btn){
       btn.disabled = false;
