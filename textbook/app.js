@@ -22,6 +22,53 @@ const list=document.getElementById("list");
 const prevBtn=document.getElementById("prevBtn");
 const nextBtn=document.getElementById("nextBtn");
 
+// 教本アプリの選択状態を保存・復元
+const LESSON_STATE_KEY = "drivingTextbookState";
+
+function saveLessonState() {
+  try {
+    localStorage.setItem(LESSON_STATE_KEY, JSON.stringify({
+      stage: currentStage,
+      key: currentKey,
+      lang: langSelect.value,
+      visibleKinds: [...visibleKinds]
+    }));
+  } catch (e) {
+    console.warn("教習項目の状態を保存できませんでした", e);
+  }
+}
+
+function restoreLessonState() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(LESSON_STATE_KEY) || "null"
+    );
+    if (!saved) return;
+
+    if ([1, 2].includes(Number(saved.stage))) {
+      currentStage = Number(saved.stage);
+    }
+
+    if (typeof saved.key === "string") {
+      currentKey = saved.key;
+    }
+
+    if (LANGS[saved.lang]) {
+      langSelect.value = saved.lang;
+    }
+
+    if (Array.isArray(saved.visibleKinds)) {
+      visibleKinds = new Set(
+        saved.visibleKinds.filter(
+          kind => kind === "説明" || KINDS.includes(kind)
+        )
+      );
+    }
+  } catch (e) {
+    console.warn("教習項目の状態を復元できませんでした", e);
+  }
+}
+
 function voiceLang(code){
   return code==="vi" ? "vi-VN" :
          code==="en" ? "en-US" :
@@ -355,6 +402,7 @@ function render(){
   document.querySelectorAll(".stage").forEach(button=>{
     button.classList.toggle("active",Number(button.dataset.stage)===currentStage);
   });
+  saveLessonState();
 }
 
 addSpeechStyles();
@@ -384,6 +432,7 @@ itemSelect.onchange=()=>{
 langSelect.onchange=()=>{
   stopSpeech();
   renderList();
+  saveLessonState();
 };
 
 function syncOpenPdfToCurrentItem(){
@@ -470,7 +519,12 @@ window.clearPdfExplanationFollow=function(){
 
 window.addEventListener("pagehide",stopSpeech);
 
-currentKey=stageItems()[0]?.key||"";
+restoreLessonState();
+
+if (!currentKey) {
+  currentKey = stageItems()[0]?.key || "";
+}
+
 render();
 
 // PWA / オフライン利用
