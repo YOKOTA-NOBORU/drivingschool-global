@@ -329,6 +329,8 @@ function displayNo(item){
 
 function fillSelect(){
   const items=stageItems();
+  const memos=loadPersonalMemos();
+
   if(!items.some(x=>x.key===currentKey)){
     currentKey=items[0]?.key||"";
   }
@@ -337,9 +339,16 @@ function fillSelect(){
   items.forEach((item,index)=>{
     const option=document.createElement("option");
     option.value=item.key;
-    option.textContent=`教習項目${String(index+1).padStart(2,"0")}　${item.title}`;
+
+    const hasMemo=!!(memos[item.key]||"").trim();
+    const memoMark=hasMemo?" 📝":"";
+
+    option.textContent=
+      `教習項目${String(index+1).padStart(2,"0")}　${item.title}${memoMark}`;
+
     itemSelect.appendChild(option);
   });
+
   itemSelect.value=currentKey;
 }
 
@@ -400,6 +409,7 @@ function openPersonalMemo(item){
 
     if(savePersonalMemos(updated)){
       closeMemo();
+      render();
       alert("個人メモを保存しました。");
     }
   };
@@ -411,9 +421,10 @@ function openPersonalMemo(item){
     delete updated[item.key];
 
     if(savePersonalMemos(updated)){
-      closeMemo();
-      alert("個人メモを削除しました。");
-    }
+  closeMemo();
+  render();
+  alert("個人メモを削除しました。");
+}
   };
 
   closeButton.onclick=closeMemo;
