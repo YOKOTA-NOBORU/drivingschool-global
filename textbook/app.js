@@ -38,6 +38,29 @@ function savePersonalEdits(data){
   }
 }
 
+// 個人メモデータ（端末ごとに保存）
+const PERSONAL_MEMO_KEY = "drivingTextbookPersonalMemos";
+
+function loadPersonalMemos(){
+  try{
+    return JSON.parse(localStorage.getItem(PERSONAL_MEMO_KEY) || "{}");
+  }catch(e){
+    console.warn("個人メモを読み込めませんでした",e);
+    return {};
+  }
+}
+
+function savePersonalMemos(data){
+  try{
+    localStorage.setItem(PERSONAL_MEMO_KEY,JSON.stringify(data));
+    return true;
+  }catch(e){
+    alert("メモを保存できませんでした。端末の空き容量を確認してください。");
+    console.error(e);
+    return false;
+  }
+}
+
 function cloneLessonData(item){
   return JSON.parse(JSON.stringify(item));
 }
@@ -322,6 +345,101 @@ function fillSelect(){
 
 function renderHeader(){
 
+
+// 個人メモ画面
+function openPersonalMemo(item){
+  const oldMemo=document.getElementById("personalMemoOverlay");
+  if(oldMemo) oldMemo.remove();
+
+  const memos=loadPersonalMemos();
+  const overlay=document.createElement("div");
+  overlay.id="personalMemoOverlay";
+  overlay.className="personal-editor-overlay";
+
+  const panel=document.createElement("div");
+  panel.className="personal-editor-panel";
+
+  const heading=document.createElement("h2");
+  heading.textContent="📝 個人メモ";
+
+  const description=document.createElement("p");
+  description.textContent=
+    "この教習項目についてのメモを、この端末だけに保存します。";
+
+  const lessonTitle=document.createElement("p");
+  lessonTitle.textContent=`第${item.stage}段階 ${displayNo(item)}項目　${item.title}`;
+
+  const textarea=document.createElement("textarea");
+  textarea.className="personal-memo-textarea";
+  textarea.rows=10;
+  textarea.placeholder="教習で気づいたこと、注意点などを入力してください。";
+  textarea.value=memos[item.key]||"";
+
+  const saveButton=document.createElement("button");
+  saveButton.type="button";
+  saveButton.className="personal-editor-save";
+  saveButton.textContent="保存する";
+
+  const deleteButton=document.createElement("button");
+  deleteButton.type="button";
+  deleteButton.className="personal-editor-cancel";
+  deleteButton.textContent="メモを削除";
+
+  const closeButton=document.createElement("button");
+  closeButton.type="button";
+  closeButton.className="personal-editor-cancel";
+  closeButton.textContent="閉じる";
+
+  function closeMemo(){
+    overlay.remove();
+  }
+
+  saveButton.onclick=()=>{
+    const updated=loadPersonalMemos();
+    updated[item.key]=textarea.value;
+
+    if(savePersonalMemos(updated)){
+      closeMemo();
+      alert("個人メモを保存しました。");
+    }
+  };
+
+  deleteButton.onclick=()=>{
+    if(!confirm("この教習項目の個人メモを削除しますか？")) return;
+
+    const updated=loadPersonalMemos();
+    delete updated[item.key];
+
+    if(savePersonalMemos(updated)){
+      closeMemo();
+      alert("個人メモを削除しました。");
+    }
+  };
+
+  closeButton.onclick=closeMemo;
+
+  overlay.onclick=event=>{
+    if(event.target===overlay) closeMemo();
+  };
+
+  const actions=document.createElement("div");
+  actions.className="personal-editor-actions";
+  actions.append(saveButton,deleteButton);
+
+  panel.append(
+    heading,
+    description,
+    lessonTitle,
+    textarea,
+    actions,
+    closeButton
+  );
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+}
+
+
   // 個人編集画面
 function openPersonalEditor(item){
   const oldEditor=document.getElementById("personalEditorOverlay");
@@ -536,6 +654,20 @@ function openPersonalEditor(item){
   editButton.onclick=()=>{
     stopSpeech();
     openPersonalEditor(item);
+  };
+
+  // 個人メモボタン
+  const memoButton=document.createElement("button");
+  memoButton.type="button";
+  memoButton.textContent="📝 個人メモ";
+  memoButton.className="personal-edit-button";
+
+  headerCard.querySelector(".toggle-grid")
+    ?.appendChild(memoButton);
+
+  memoButton.onclick=()=>{
+    stopSpeech();
+    openPersonalMemo(item);
   };
 
   headerCard.querySelectorAll("[data-kind]").forEach(button=>{
