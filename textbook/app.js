@@ -15,6 +15,33 @@ let currentKey="";
 let visibleKinds=new Set(["説明"]);
 let currentSpeechBlock=null;
 
+// 個人編集データ（端末ごとに保存）
+const PERSONAL_EDIT_KEY = "drivingTextbookPersonalEdits";
+
+function loadPersonalEdits(){
+  try{
+    return JSON.parse(localStorage.getItem(PERSONAL_EDIT_KEY) || "{}");
+  }catch(e){
+    console.warn("個人編集データを読み込めませんでした",e);
+    return {};
+  }
+}
+
+function savePersonalEdits(data){
+  try{
+    localStorage.setItem(PERSONAL_EDIT_KEY,JSON.stringify(data));
+    return true;
+  }catch(e){
+    alert("保存できませんでした。端末の空き容量を確認してください。");
+    console.error(e);
+    return false;
+  }
+}
+
+function cloneLessonData(item){
+  return JSON.parse(JSON.stringify(item));
+}
+
 const itemSelect=document.getElementById("itemSelect");
 const langSelect=document.getElementById("lang");
 const headerCard=document.getElementById("headerCard");
@@ -257,7 +284,20 @@ function stageItems(){
 
 function currentItem(){
   const items=stageItems();
-  return items.find(item=>item.key===currentKey)||items[0]||null;
+  const original=items.find(item=>item.key===currentKey)||items[0]||null;
+
+  if(!original) return null;
+
+  // 元データを直接変更しないよう複製する
+  const item=cloneLessonData(original);
+
+  // 個人編集データがあれば、その内容を反映
+  const edits=loadPersonalEdits();
+  if(edits[item.key] && Array.isArray(edits[item.key].blocks)){
+    item.blocks=cloneLessonData(edits[item.key].blocks);
+  }
+
+  return item;
 }
 
 function displayNo(item){
@@ -281,6 +321,185 @@ function fillSelect(){
 }
 
 function renderHeader(){
+
+  // 個人編集画面
+function openPersonalEditor(item){
+  const oldEditor=document.getElementById("personalEditorOverlay");
+  if(oldEditor) oldEditor.remove();
+
+  const blocks=cloneLessonData(item.blocks||[]);
+  const categories=["説明",...KINDS];
+
+  const overlay=document.createElement("div");
+  overlay.id="personalEditorOverlay";
+  overlay.className="personal-editor-overlay";
+
+  const panel=document.createElement("div");
+  panel.className="personal-editor-panel";
+
+  const heading=document.createElement("h2");
+  heading.textContent="✏️ 個人編集";
+
+  const description=document.createElement("p");
+  description.textContent=
+    "編集した文章は、この端末だけに保存されます。";
+
+  const blockLabel=document.createElement("label");
+  blockLabel.textContent="編集する説明";
+
+  const blockSelect=document.createElement("select");
+  blocks.forEach((block,index)=>{
+    const option=document.createElement("option");
+    option.value=String(index);
+    option.textContent=`${index+1}. ${block.title||"説明"}`;
+    blockSelect.appendChild(option);
+  });
+
+  const categoryLabel=document.createElement("label");
+  categoryLabel.textContent="編集する種類";
+
+  const categorySelect=document.createElement("select");
+  categories.forEach(category=>{
+    const option=document.createElement("option");
+    option.value=category;
+    option.textContent=category;
+    categorySelect.appendChild(option);
+  });
+
+  const fields=document.createElement("div");
+  fields.className="personal-editor-fields";
+
+  const languageCodes=["ja",...Object.keys(LANGS)];
+  const languageNames={
+    ja:"日本語",
+    ...LANGS
+  };
+
+  function addTextField(code,value){
+    const label=document.createElement("label");
+    label.className="personal-editor-field";
+
+    const name=document.createElement("span");
+    name.textContent=languageNames[code];
+
+    const textarea=document.createElement("textarea");
+    textarea.dataset.lang=code;
+    textarea.value=value||"";
+    textarea.rows=4;
+    textarea.placeholder=`${languageNames[code]}の文章を入力`;
+
+    label.append(name,textarea);
+    fields.appendChild(label);
+  }
+
+  function renderFields(){
+    fields.replaceChildren();
+
+    const block=blocks[Number(blockSelect.value)];
+    if(!block) return;
+
+    const category=categorySelect.value;
+    let index=(block.ja||[]).findIndex(
+      entry=>entry && entry.label===category
+    );
+
+    if(index<0) index=categories.indexOf(category);
+
+    languageCodes.forEach(code=>{
+      const entry=(block[code]||[])[index];
+      addTextField(code,entry?.text||"");
+    });
+  }
+
+  blockLabel.appendChild(blockSelect);
+  categoryLabel.appendChild(categorySelect);
+
+  blockSelect.onchange=renderFields;
+  categorySelect.onchange=renderFields;
+
+  const saveButton=document.createElement("button");
+  saveButton.type="button";
+  saveButton.className="personal-editor-save";
+  saveButton.textContent="保存する";
+
+  const cancelButton=document.createElement("button");
+  cancelButton.type="button";
+  cancelButton.className="personal-editor-cancel";
+  cancelButton.textContent="キャンセル";
+
+  function closeEditor(){
+    overlay.remove();
+  }
+
+  cancelButton.onclick=closeEditor;
+  overlay.onclick=event=>{
+    if(event.target===overlay) closeEditor();
+  };
+
+  saveButton.onclick=()=>{
+    const block=blocks[Number(blockSelect.value)];
+    const category=categorySelect.value;
+
+    let index=(block.ja||[]).findIndex(
+      entry=>entry && entry.label===category
+    );
+
+    if(index<0) index=categories.indexOf(category);
+
+    languageCodes.forEach(code=>{
+      if(!Array.isArray(block[code])){
+        block[code]=[];
+      }
+
+      while(block[code].length<=index){
+        block[code].push({
+          label:code==="ja"
+            ? categories[block[code].length]||category
+            : languageNames[code],
+          text:""
+        });
+      }
+
+      const textarea=fields.querySelector(
+        `textarea[data-lang="${code}"]`
+      );
+
+      block[code][index]={
+        ...(block[code][index]||{}),
+        label:code==="ja"?category:languageNames[code],
+        text:textarea?.value||""
+      };
+    });
+
+    const edits=loadPersonalEdits();
+    edits[item.key]={blocks};
+
+    if(savePersonalEdits(edits)){
+      closeEditor();
+      render();
+      alert("個人編集を保存しました。");
+    }
+  };
+
+  const actions=document.createElement("div");
+  actions.className="personal-editor-actions";
+  actions.append(saveButton,cancelButton);
+
+  panel.append(
+    heading,
+    description,
+    blockLabel,
+    categoryLabel,
+    fields,
+    actions
+  );
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  renderFields();
+}
+
   const item=currentItem();
   if(!item){
     headerCard.innerHTML="";
@@ -304,6 +523,20 @@ function renderHeader(){
       if(typeof window.openTextbookPdf==="function") window.openTextbookPdf({key:item.key,title:`第${item.stage}段階${displayNo(item)}項目　${item.title}`});
     };
   }
+
+    // 個人編集ボタン
+  const editButton=document.createElement("button");
+  editButton.type="button";
+  editButton.textContent="✏️ 個人編集";
+  editButton.className="personal-edit-button";
+
+  headerCard.querySelector(".toggle-grid")
+    ?.appendChild(editButton);
+
+  editButton.onclick=()=>{
+    stopSpeech();
+    openPersonalEditor(item);
+  };
 
   headerCard.querySelectorAll("[data-kind]").forEach(button=>{
     button.onclick=()=>{
@@ -538,3 +771,122 @@ if ("serviceWorker" in navigator) {
     }
   });
 }
+
+// 個人編集画面のデザイン
+(function addPersonalEditorStyles(){
+  if(document.getElementById("personal-editor-style")) return;
+
+  const style=document.createElement("style");
+  style.id="personal-editor-style";
+
+  style.textContent=`
+    .personal-editor-overlay{
+      position:fixed;
+      inset:0;
+      z-index:10000;
+      background:rgba(0,0,0,.55);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px;
+    }
+
+    .personal-editor-panel{
+      width:100%;
+      max-width:680px;
+      max-height:90vh;
+      overflow-y:auto;
+      background:#fff;
+      border-radius:18px;
+      padding:20px;
+      box-shadow:0 10px 35px rgba(0,0,0,.25);
+    }
+
+    .personal-editor-panel h2{
+      margin:0 0 8px;
+      color:#14532d;
+      font-size:21px;
+    }
+
+    .personal-editor-panel p{
+      color:#666;
+      font-size:13px;
+      line-height:1.6;
+    }
+
+    .personal-editor-panel label{
+      display:block;
+      margin-top:14px;
+      font-weight:800;
+      color:#245438;
+    }
+
+    .personal-editor-panel select,
+    .personal-editor-panel textarea{
+      display:block;
+      width:100%;
+      box-sizing:border-box;
+      margin-top:7px;
+      padding:11px;
+      border:1px solid #cbded0;
+      border-radius:10px;
+      font:inherit;
+      background:#fff;
+    }
+
+    .personal-editor-panel textarea{
+      min-height:85px;
+      line-height:1.6;
+      resize:vertical;
+    }
+
+    .personal-editor-field{
+      padding:10px;
+      background:#f5faf7;
+      border-radius:12px;
+    }
+
+    .personal-editor-field span{
+      font-weight:900;
+    }
+
+    .personal-editor-actions{
+      display:flex;
+      gap:10px;
+      margin-top:20px;
+    }
+
+    .personal-editor-actions button{
+      flex:1;
+      min-height:46px;
+      border:0;
+      border-radius:12px;
+      font-size:15px;
+      font-weight:900;
+      cursor:pointer;
+    }
+
+    .personal-editor-save{
+      background:#2f965c;
+      color:#fff;
+    }
+
+    .personal-editor-cancel{
+      background:#e9eeeb;
+      color:#333;
+    }
+
+    .personal-edit-button{
+      background:#dff2e6;
+      color:#14532d;
+      border:1px solid #b9dfc5;
+      border-radius:12px;
+      padding:9px 12px;
+      font-size:14px;
+      font-weight:900;
+      cursor:pointer;
+    }
+  `;
+
+  document.head.appendChild(style);
+})();
