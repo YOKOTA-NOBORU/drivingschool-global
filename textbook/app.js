@@ -403,35 +403,109 @@ function openPersonalMemo(item){
     overlay.remove();
   }
 
-  saveButton.onclick=()=>{
-    const updated=loadPersonalMemos();
-    updated[item.key]=textarea.value;
+  saveButton.onclick=async()=>{
+  const block=blocks[Number(blockSelect.value)];
+  const category=categorySelect.value;
 
-    if(savePersonalMemos(updated)){
-      closeMemo();
-      render();
-      alert("個人メモを保存しました。");
+  let index=(block.ja||[]).findIndex(
+    entry=>entry && entry.label===category
+  );
+
+  if(index<0) index=categories.indexOf(category);
+
+  const textarea=fields.querySelector(
+    'textarea[data-lang="ja"]'
+  );
+
+  const japaneseText=textarea?.value||"";
+  const translatedTexts={};
+
+  saveButton.disabled=true;
+  saveButton.textContent="翻訳中...";
+
+  try{
+    if(japaneseText.trim()){
+      const deviceKey="drivingschool_translation_device_id";
+      let deviceId=localStorage.getItem(deviceKey);
+
+      if(!deviceId){
+        deviceId="dev_"+(
+          window.crypto&&window.crypto.randomUUID
+            ? window.crypto.randomUUID().replace(/-/g,"")
+            : Date.now().toString(36)+"_"+Math.random().toString(36).slice(2)
+        );
+        localStorage.setItem(deviceKey,deviceId);
+      }
+
+      const response=await fetch(
+        "https://drivingschool-globaltalk.netlify.app/.netlify/functions/translate",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            text:japaneseText,
+            target_langs:["vi","en","zh","pt","id","ne","my"],
+            source_lang:"JA",
+            device_id:deviceId
+          })
+        }
+      );
+
+      const data=await response.json();
+
+      if(!response.ok){
+        throw new Error(data.error||"翻訳に失敗しました");
+      }
+
+      if(!data.texts){
+        throw new Error("翻訳結果を取得できませんでした");
+      }
+
+      Object.assign(translatedTexts,data.texts);
     }
-  };
 
-  deleteButton.onclick=()=>{
-    if(!confirm("この教習項目の個人メモを削除しますか？")) return;
+    allLanguageCodes.forEach(code=>{
+      if(!Array.isArray(block[code])){
+        block[code]=[];
+      }
 
-    const updated=loadPersonalMemos();
-    delete updated[item.key];
+      while(block[code].length<=index){
+        block[code].push({
+          label:code==="ja"
+            ? categories[block[code].length]||category
+            : languageNames[code],
+          text:""
+        });
+      }
 
-    if(savePersonalMemos(updated)){
-  closeMemo();
-  render();
-  alert("個人メモを削除しました。");
-}
-  };
+      block[code][index]={
+        ...(block[code][index]||{}),
+        label:code==="ja"?category:languageNames[code],
+        text:code==="ja"
+          ? japaneseText
+          : translatedTexts[code]||""
+      };
+    });
 
-  closeButton.onclick=closeMemo;
+    const edits=loadPersonalEdits();
+    edits[item.key]={blocks};
 
-  overlay.onclick=event=>{
-    if(event.target===overlay) closeMemo();
-  };
+    if(savePersonalEdits(edits)){
+      closeEditor();
+      render();
+      alert("日本語と7言語の個人編集を保存しました。");
+    }else{
+      throw new Error("保存できませんでした");
+    }
+
+  }catch(error){
+    alert("保存できませんでした。\n"+error.message);
+    saveButton.disabled=false;
+    saveButton.textContent="保存する";
+  }
+};
 
   const actions=document.createElement("div");
   actions.className="personal-editor-actions";
@@ -498,11 +572,13 @@ function openPersonalEditor(item){
   const fields=document.createElement("div");
   fields.className="personal-editor-fields";
 
-  const languageCodes=["ja",...Object.keys(LANGS)];
-  const languageNames={
-    ja:"日本語",
-    ...LANGS
-  };
+const languageCodes=["ja"];
+const allLanguageCodes=["ja",...Object.keys(LANGS)];
+
+const languageNames={
+  ja:"日本語",
+  ...LANGS
+};
 
   function addTextField(code,value){
     const label=document.createElement("label");
@@ -565,17 +641,70 @@ function openPersonalEditor(item){
     if(event.target===overlay) closeEditor();
   };
 
-  saveButton.onclick=()=>{
-    const block=blocks[Number(blockSelect.value)];
-    const category=categorySelect.value;
+  saveButton.onclick=async()=>{
+  const block=blocks[Number(blockSelect.value)];
+  const category=categorySelect.value;
 
-    let index=(block.ja||[]).findIndex(
-      entry=>entry && entry.label===category
-    );
+  let index=(block.ja||[]).findIndex(
+    entry=>entry && entry.label===category
+  );
 
-    if(index<0) index=categories.indexOf(category);
+  if(index<0) index=categories.indexOf(category);
 
-    languageCodes.forEach(code=>{
+  const textarea=fields.querySelector(
+    'textarea[data-lang="ja"]'
+  );
+
+  const japaneseText=textarea?.value||"";
+  const translatedTexts={};
+
+  saveButton.disabled=true;
+  saveButton.textContent="翻訳中...";
+
+  try{
+    if(japaneseText.trim()){
+      const deviceKey="drivingschool_translation_device_id";
+      let deviceId=localStorage.getItem(deviceKey);
+
+      if(!deviceId){
+        deviceId="dev_"+(
+          window.crypto&&window.crypto.randomUUID
+            ? window.crypto.randomUUID().replace(/-/g,"")
+            : Date.now().toString(36)+"_"+Math.random().toString(36).slice(2)
+        );
+        localStorage.setItem(deviceKey,deviceId);
+      }
+
+      const response=await fetch(
+        "https://drivingschool-globaltalk.netlify.app/.netlify/functions/translate",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            text:japaneseText,
+            target_langs:["vi","en","zh","pt","id","ne","my"],
+            source_lang:"JA",
+            device_id:deviceId
+          })
+        }
+      );
+
+      const data=await response.json();
+
+      if(!response.ok){
+        throw new Error(data.error||"翻訳に失敗しました");
+      }
+
+      if(!data.texts){
+        throw new Error("翻訳結果を取得できませんでした");
+      }
+
+      Object.assign(translatedTexts,data.texts);
+    }
+
+    allLanguageCodes.forEach(code=>{
       if(!Array.isArray(block[code])){
         block[code]=[];
       }
@@ -589,14 +718,12 @@ function openPersonalEditor(item){
         });
       }
 
-      const textarea=fields.querySelector(
-        `textarea[data-lang="${code}"]`
-      );
-
       block[code][index]={
         ...(block[code][index]||{}),
         label:code==="ja"?category:languageNames[code],
-        text:textarea?.value||""
+        text:code==="ja"
+          ? japaneseText
+          : translatedTexts[code]||""
       };
     });
 
@@ -606,10 +733,17 @@ function openPersonalEditor(item){
     if(savePersonalEdits(edits)){
       closeEditor();
       render();
-      alert("個人編集を保存しました。");
+      alert("日本語と7言語の個人編集を保存しました。");
+    }else{
+      throw new Error("保存できませんでした");
     }
-  };
 
+  }catch(error){
+    alert("保存できませんでした。\n"+error.message);
+    saveButton.disabled=false;
+    saveButton.textContent="保存する";
+  }
+};
   const actions=document.createElement("div");
   actions.className="personal-editor-actions";
   actions.append(saveButton,cancelButton);
